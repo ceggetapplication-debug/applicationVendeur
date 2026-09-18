@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Taḥanuţ Cegget",
+    "slug": "Taḥanuţ Cegget",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": ".assets/images/logAppKMRS.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": ".assets/images/logAppKMRS.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.koceiladrk.cegget"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": ".assets/images/logAppKMRS.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": ".assets/images/logAppKMRS.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "7d2cc69c-99eb-4c47-8373-3a3f9b81a6fc"
+      }
+    }
+  }
+}

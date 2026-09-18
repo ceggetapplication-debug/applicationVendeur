@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif
+    }
+
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #f8f8f8;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .5);
+      border: 2px solid #333
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+      padding: 30px 10px 10px;
+      display: flex;
+      flex-direction: column
+    }
+
+    .view {
+      display: none;
+      flex-direction: column;
+      height: 100%
+    }
+
+    .view.active {
+      display: flex
+    }
+
+    /* COVER */
+    .cover {
+      width: 100%;
+      height: 130px;
+      background: linear-gradient(135deg, #001524, #15616d);
+      border-radius: 15px;
+      margin-bottom: 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffecd1;
+      font-size: 13px
+    }
+
+    .cam {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, .4);
+      border-radius: 8px;
+      padding: 4px 6px;
+      cursor: pointer;
+      color: #fff;
+      font-size: 14px
+    }
+
+    /* HEADER */
+    .phdr {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px
+    }
+
+    .pp {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      border: 1.5px solid #ff7d00;
+      background: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      position: relative;
+      flex-shrink: 0
+    }
+
+    .cam2 {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: rgba(0, 0, 0, .4);
+      border-radius: 6px;
+      padding: 2px 4px;
+      font-size: 11px;
+      cursor: pointer
+    }
+
+    .sname {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffecd1
+    }
+
+    .saddr {
+      font-size: 12px;
+      color: #ff7d00
+    }
+
+    /* MENU */
+    .menu-box {
+      background: #fff;
+      border: 1.5px solid #ff7d00;
+      border-radius: 10px;
+      padding: 20px 0;
+      flex: 1;
+      overflow-y: auto
+    }
+
+    .mi {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px 10px;
+      border-bottom: 1px solid #ffecd1;
+      cursor: pointer
+    }
+
+    .mi:hover {
+      background: #fff8f2
+    }
+
+    .mi:last-child {
+      border-bottom: none
+    }
+
+    .mil {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: #001524
+    }
+
+    .chev {
+      color: #ccc
+    }
+
+    /* NOTIF EXPAND */
+    .notif-exp {
+      display: none;
+      background: #f9f9f9;
+      padding: 15px;
+      border-bottom: 1px solid #ffecd1;
+      margin: 0 20px 5px
+    }
+
+    .nrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 14px
+    }
+
+    .tog {
+      width: 46px;
+      height: 26px;
+      background: #ff7d00;
+      border-radius: 13px;
+      cursor: pointer;
+      position: relative;
+      transition: .2s
+    }
+
+    .tog.off {
+      background: #001524
+    }
+
+    .tthumb {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 20px;
+      height: 20px;
+      background: #ffecd1;
+      border-radius: 50%;
+      transition: .2s
+    }
+
+    .tog.off .tthumb {
+      right: auto;
+      left: 3px;
+      background: #15616d
+    }
+
+    /* BACK */
+    .back {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 22px;
+      color: #001524;
+      padding: 5px
+    }
+
+    /* ACCOUNT DETAILS */
+    .adc {
+      flex: 1;
+      background: #fff;
+      border: 1.5px solid #ff7d00;
+      border-radius: 10px;
+      padding: 10px 20px;
+      margin-top: 50px;
+      overflow-y: auto
+    }
+
+    .adt {
+      font-size: 16px;
+      font-weight: 700;
+      color: #001524;
+      margin: 10px 0 20px 30px
+    }
+
+    .adi {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ffecd1;
+      padding-bottom: 10px
+    }
+
+    .adl {
+      font-size: 13px;
+      font-weight: 700;
+      color: #001524;
+      margin-bottom: 4px
+    }
+
+    .adrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .adv {
+      font-size: 15px;
+      color: #000
+    }
+
+    .edit {
+      color: #15616d;
+      cursor: pointer;
+      font-size: 16px
+    }
+
+    /* LANGUES */
+    .langc {
+      flex: 1;
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px 20px;
+      margin-top: 120px;
+      overflow-y: auto
+    }
+
+    .langt {
+      font-size: 18px;
+      font-weight: 700;
+      color: #001524;
+      margin: 10px 0 20px 30px
+    }
+
+    .langi {
+      padding: 15px 0;
+      border-bottom: 1px solid #ffecd1;
+      font-size: 15px;
+      cursor: pointer
+    }
+
+    .langi:hover {
+      color: #ff7d00
+    }
+
+    /* GESTION */
+    .gview {
+      padding: 0
+    }
+
+    .gc {
+      flex: 1;
+      background: #fff;
+      overflow-y: auto;
+      height: 100%
+    }
+
+    .ghdr {
+      display: flex;
+      align-items: center;
+      padding: 40px 20px 20px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, .1)
+    }
+
+    .gtitle {
+      font-size: 20px;
+      font-weight: 700;
+      color: #001524;
+      margin-left: 15px
+    }
+
+    .gcont {
+      padding: 20px
+    }
+
+    .stitle {
+      font-size: 17px;
+      font-weight: 700;
+      color: #001524;
+      margin-top: 10px;
+      margin-bottom: 5px
+    }
+
+    .sdesc {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 18px;
+      line-height: 19px
+    }
+
+    .ginput {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 15px;
+      margin-bottom: 25px;
+      background: #f9f9f9;
+      width: 100%
+    }
+
+    .ginput:focus {
+      outline: none;
+      border-color: #ff6b00
+    }
+
+    .pbox {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 25px;
+      border: 1px solid #eee
+    }
+
+    .cbrow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer
+    }
+
+    .cbrow:last-child {
+      border-bottom: none
+    }
+
+    .cbbox {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: 2px solid #001524;
+      background: #001524;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 13px;
+      transition: .15s
+    }
+
+    .cbbox.off {
+      background: #fff;
+      border-color: #ddd;
+      color: transparent
+    }
+
+    .subbtn {
+      background: #ff6b00;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      margin-bottom: 30px
+    }
+
+    .subbtn:hover {
+      background: #e05500
+    }
+
+    /* MODALS */
+    .ov {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, .4);
+      z-index: 100;
+      justify-content: center;
+      align-items: center
+    }
+
+    .ov.show {
+      display: flex
+    }
+
+    .mbox {
+      background: #fff;
+      border-radius: 20px;
+      padding: 25px;
+      width: 92%;
+      max-height: 85%;
+      overflow-y: auto
+    }
+
+    .mhdr {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px
+    }
+
+    .mtitle {
+      font-size: 17px;
+      font-weight: 700;
+      flex: 1;
+      margin-left: 15px
+    }
+
+    .mbtn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 20px;
+      color: #001524;
+      padding: 0
+    }
+
+    .minput {
+      border: 1.5px solid #ff7d00;
+      border-radius: 5px;
+      width: 100%;
+      padding: 10px;
+      font-size: 15px;
+      margin-bottom: 10px;
+      font-family: inherit
+    }
+
+    .minput:focus {
+      outline: none
+    }
+
+    .mbutton {
+      border-radius: 10px;
+      padding: 11px;
+      margin-top: 10px;
+      width: 100%;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      color: #fff;
+      cursor: pointer
+    }
+
+    .orange {
+      background: #ff7d00
+    }
+
+    .teal {
+      background: #15616d
+    }
+
+    .mmsg {
+      font-size: 14px;
+      color: #ff7d00;
+      margin: 10px 0;
+      text-align: center
+    }
+
+    .mdi {
+      margin-bottom: 12px;
+      border-bottom: 1px solid #ffecd1;
+      padding-bottom: 10px
+    }
+
+    .mdi:last-child {
+      border-bottom: none
+    }
+
+    .mdl {
+      font-size: 13px;
+      font-weight: 700;
+      color: #001524;
+      margin-bottom: 4px
+    }
+
+    .contact-opt {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 0;
+      border-bottom: 1px solid #ff7d00;
+      font-size: 14px;
+      cursor: pointer
+    }
+
+    .contact-opt:last-child {
+      border-bottom: none
+    }
+
+    /* PREMIUM */
+    .prem {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f8f8f8;
+      z-index: 200;
+      overflow-y: auto
+    }
+
+    .prem.show {
+      display: block
+    }
+
+    .premhdr {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #ffecd1;
+      background: #fff
+    }
+
+    .premtitle {
+      font-size: 18px;
+      font-weight: 700;
+      color: #001524;
+      margin-left: 15px;
+      flex: 1
+    }
+
+    .prembody {
+      padding: 20px
+    }
+
+    .deal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .07);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border: 1.5px solid #ffecd1
+    }
+
+    .deal:hover {
+      border-color: #15616d
+    }
+
+    .dico {
+      font-size: 32px
+    }
+
+    .dname {
+      font-size: 15px;
+      font-weight: 700;
+      color: #001524
+    }
+
+    .dprice {
+      font-size: 13px;
+      color: #78290f;
+      margin-top: 3px
+    }
+
+    .textarea {
+      border: 1.5px solid #ff7d00;
+      border-radius: 5px;
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      height: 80px;
+      font-family: inherit;
+      resize: none
+    }
+
+    .textarea:focus {
+      outline: none
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #001524;
+      margin-bottom: 12px
+    }
+  </style>
+</head>
+
+<body>
+  <div class="phone">
+    <div class="screen">
+
+      <!-- ══ VUE MENU ══ -->
+      <div id="v-menu" class="view active">
+        <div class="cover">Photo de couverture<div class="cam">📷</div>
+        </div>
+        <div class="phdr">
+          <div class="pp">🏪<div class="cam2">📷</div>
+          </div>
+          <div>
+            <div class="sname">Nom de la boutique</div>
+            <div class="saddr">Adresse de la boutique</div>
+          </div>
+        </div>
+        <div class="menu-box">
+          <div class="mi" onclick="sv('account')">
+            <div class="mil">👤 Mon compte</div><span class="chev">›</span>
+          </div>
+          <div class="mi" onclick="sv('languages')">
+            <div class="mil">🌐 Langues</div><span class="chev">›</span>
+          </div>
+          <div class="mi" onclick="toggleNotif()">
+            <div class="mil">🔔 Notifications</div><span class="chev">›</span>
+          </div>
+          <div id="notif-exp" class="notif-exp">
+            <div style="font-size:13px;color:#001524;margin-bottom:8px">Gérez vos préférences de notifications</div>
+            <div class="nrow"><span>Nouvelles commandes</span>
+              <div class="tog" id="t1" onclick="tog('t1')">
+                <div class="tthumb"></div>
+              </div>
+            </div>
+            <div class="nrow" style="margin-top:10px"><span>Notifications Favoris</span>
+              <div class="tog" id="t2" onclick="tog('t2')">
+                <div class="tthumb"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mi" onclick="sm('ov-avantages')">
+            <div class="mil">🎁 Avantages</div><span class="chev">›</span>
+          </div>
+          <div class="mi" onclick="sv('gestion')">
+            <div class="mil">👥 Gestion</div><span class="chev">›</span>
+          </div>
+          <div class="mi" onclick="sm('ov-contact')">
+            <div class="mil">📞 Nous contacter</div><span class="chev">›</span>
+          </div>
+          <div class="mi">
+            <div class="mil">🚪 Déconnexion</div><span class="chev">›</span>
+          </div>
+          <div class="mi">
+            <div class="mil">🗑️ Supprimer le compte</div><span class="chev">›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ VUE MON COMPTE ══ -->
+      <div id="v-account" class="view">
+        <button class="back" onclick="sv('menu')">‹</button>
+        <div class="adc">
+          <div class="adt">Détails du compte</div>
+          <div class="adi">
+            <div class="adl">Nom de la boutique</div>
+            <div class="adrow"><span class="adv">Nom de la boutique</span></div>
+          </div>
+          <div class="adi">
+            <div class="adl">Email</div>
+            <div class="adrow"><span class="adv">email@example.com</span><span class="edit"
+                onclick="sm('ov-email')">✏️</span></div>
+          </div>
+          <div class="adi">
+            <div class="adl">Mot de passe</div>
+            <div class="adrow"><span class="adv">••••••••</span><span class="edit" onclick="sm('ov-password')">✏️</span>
+            </div>
+          </div>
+          <div class="adi">
+            <div class="adl">Téléphone</div>
+            <div class="adrow"><span class="adv">+213 6xx xxx xxx</span><span class="edit"
+                onclick="sm('ov-phone')">✏️</span></div>
+          </div>
+          <div class="adi" style="border:none">
+            <div class="adl">Adresse</div>
+            <div class="adrow"><span class="adv">Adresse de la boutique</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ VUE LANGUES ══ -->
+      <div id="v-languages" class="view">
+        <button class="back" onclick="sv('menu')">‹</button>
+        <div class="langc">
+          <div class="langt">Langues</div>
+          <div class="langi">Français (fr)</div>
+          <div class="langi">Taqvaylit (kab)</div>
+        </div>
+      </div>
+
+      <!-- ══ VUE GESTION ══ -->
+      <div id="v-gestion" class="view gview">
+        <div class="gc">
+          <div class="ghdr">
+            <button class="mbtn" onclick="sv('menu')">‹</button>
+            <span class="gtitle">Gestion de l'équipe</span>
+          </div>
+          <div class="gcont">
+            <div class="stitle">Inviter un gestionnaire</div>
+            <div class="sdesc">Envoyez une invitation à un collaborateur pour qu'il gère votre boutique.</div>
+            <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:8px">Email</div>
+            <input class="ginput" type="email" placeholder="Nouvel email..." />
+            <div class="stitle">Permissions</div>
+            <div class="sdesc">Choisissez les accès accordés au gestionnaire.</div>
+            <div class="pbox">
+              <div class="cbrow" onclick="tcheck(this)"><span style="font-size:15px;color:#333">Ma boutique</span>
+                <div class="cbbox">✓</div>
+              </div>
+              <div class="cbrow" onclick="tcheck(this)"><span style="font-size:15px;color:#333">Mes nouvelles</span>
+                <div class="cbbox">✓</div>
+              </div>
+              <div class="cbrow" onclick="tcheck(this)"><span style="font-size:15px;color:#333">Commandes</span>
+                <div class="cbbox">✓</div>
+              </div>
+            </div>
+            <button class="subbtn">Envoyer l'invitation</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MODAL AVANTAGES ══ -->
+      <div id="ov-avantages" class="ov" onclick="cov(event,'ov-avantages')">
+        <div class="mbox" onclick="event.stopPropagation()">
+          <div class="mhdr"><button class="mbtn" onclick="cm('ov-avantages')">‹</button><span
+              class="mtitle">Avantages</span>
+            <div style="width:20px"></div>
+          </div>
+          <div class="mdi" style="border:none">
+            <div class="adv" style="margin-bottom:14px">Vous n'avez aucune offre active. Voulez-vous activer une offre
+              premium ?</div>
+            <button class="mbutton orange" onclick="showPremium()">Premium</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ MODAL EMAIL ══ -->
+      <div id="ov-email" class="ov" onclick="cov(event,'ov-email')">
+        <div class="mbox" onclick="event.stopPropagation()">
+          <div class="mhdr"><button class="mbtn" onclick="cm('ov-email')">‹</button><span class="mtitle">Modifier
+              l'email</span>
+            <div style="width:20px"></div>
+          </div>
+          <input class="minput" type="email" placeholder="Nouvel email..." />
+          <button class="mbutton orange">Enregistrer</button>
+        </div>
+      </div>
+
+      <!-- ══ MODAL MOT DE PASSE ══ -->
+      <div id="ov-password" class="ov" onclick="cov(event,'ov-password')">
+        <div class="mbox" onclick="event.stopPropagation()">
+          <div class="mhdr"><button class="mbtn" onclick="cm('ov-password')">‹</button><span class="mtitle">Modifier le
+              mot de passe</span>
+            <div style="width:20px"></div>
+          </div>
+          <input class="minput" type="password" placeholder="Mot de passe actuel..." />
+          <input class="minput" type="password" placeholder="Nouveau mot de passe..." />
+          <div class="hint">Le mot de passe doit contenir au moins 8 caractères.</div>
+          <button class="mbutton orange">Enregistrer</button>
+        </div>
+      </div>
+
+      <!-- ══ MODAL TÉLÉPHONE ══ -->
+      <div id="ov-phone" class="ov" onclick="cov(event,'ov-phone')">
+        <div class="mbox" onclick="event.stopPropagation()">
+          <div class="mhdr"><button class="mbtn" onclick="cm('ov-phone')">‹</button><span class="mtitle">Modifier le
+              téléphone</span>
+            <div style="width:20px"></div>
+          </div>
+          <input class="minput" type="tel" placeholder="Nouveau numéro..." />
+          <button class="mbutton orange">Enregistrer</button>
+        </div>
+      </div>
+
+      <!-- ══ MODAL CONTACT ══ -->
+      <div id="ov-contact" class="ov" onclick="cov(event,'ov-contact')">
+        <div class="mbox" onclick="event.stopPropagation()">
+          <div class="mhdr"><button class="mbtn" onclick="cm('ov-contact')">‹</button><span class="mtitle">Nous
+              contacter</span>
+            <div style="width:20px"></div>
+          </div>
+          <div class="contact-opt">📧 &nbsp; support@cegget.com</div>
+          <div class="contact-opt">📞 &nbsp; +213 xxx xxx xxx</div>
+        </div>
+      </div>
+
+      <!-- ══ ÉCRAN PREMIUM ══ -->
+      <div id="prem" class="prem">
+        <div class="premhdr">
+          <button class="mbtn" onclick="closePremium()">‹</button>
+          <span class="premtitle">Offres Premium</span>
+        </div>
+        <div class="prembody">
+          <div style="font-size:13px;color:#666;margin-bottom:18px;line-height:19px">Boostez votre boutique avec nos
+            packs de gestion d'équipe.</div>
+          <div class="deal"><span class="dico">👥</span>
+            <div>
+              <div class="dname">Pack 3 – Gestion d'équipe</div>
+              <div class="dprice">1 500 DA / an</div>
+            </div>
+          </div>
+          <div class="deal"><span class="dico">🫂</span>
+            <div>
+              <div class="dname">Pack 4 – Gestion avancée</div>
+              <div class="dprice">2 500 DA / an</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <script>
+    function sv(id) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById('v-' + id).classList.add('active') }
+    function sm(id) { document.getElementById(id).classList.add('show') }
+    function cm(id) { document.getElementById(id).classList.remove('show') }
+    function cov(e, id) { if (e.target === document.getElementById(id)) cm(id) }
+    function toggleNotif() { const d = document.getElementById('notif-exp'); d.style.display = d.style.display === 'block' ? 'none' : 'block' }
+    function tog(id) { document.getElementById(id).classList.toggle('off') }
+    function tcheck(row) { const b = row.querySelector('.cbbox'); b.classList.toggle('off'); b.textContent = b.classList.contains('off') ? '' : '✓' }
+    function showPremium() { cm('ov-avantages'); document.getElementById('prem').classList.add('show') }
+    function closePremium() { document.getElementById('prem').classList.remove('show'); sm('ov-avantages') }
+  </script>
+</body>
+
+</html>

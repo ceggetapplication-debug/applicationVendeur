@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inscrire mon magasin</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #f9f9f9;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Inter';
+    }
+
+    #scroll-view {
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background-color: #f9f9f9;
+      min-height: 100vh;
+      box-sizing: border-box;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      text-align: center;
+      color: #001524;
+    }
+
+    .sidetitle {
+      font-size: 18px;
+      color: #78290f;
+      font-weight: bold;
+      margin-bottom: 10px;
+      margin-top: 20px;
+      align-self: auto;
+      text-decoration: underline;
+    }
+
+    .label {
+      font-size: 16px;
+      margin-bottom: 5px;
+      margin-top: 10px;
+      color: #001524;
+      font-weight: bold;
+    }
+
+    .input {
+      border: 1.5px solid #000000;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      background-color: #e8e9eb;
+      width: 100%;
+      box-sizing: border-box;
+      color: #001524;
+    }
+
+    .input::placeholder {
+      color: #666;
+    }
+
+    .errorText {
+      color: red;
+      font-size: 12px;
+      margin-top: 0px;
+      margin-bottom: 15px;
+    }
+
+    .passwordInputContainer {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      border: 1.5px solid #15616d;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      background-color: #e8e9eb;
+      box-sizing: border-box;
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .passwordInput {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      background: transparent;
+      outline: none;
+      color: #001524;
+    }
+
+    .passwordInput::placeholder {
+      color: #666;
+    }
+
+    .passwordToggle {
+      padding: 12px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .infoText {
+      font-size: 12px;
+      color: #313630;
+      margin-top: 0px;
+      margin-bottom: 15px;
+      font-style: italic;
+    }
+
+    .customButton {
+      background-color: #15616d;
+      padding: 15px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      width: 30%;
+      align-self: center;
+      cursor: pointer;
+      border: none;
+      box-sizing: border-box;
+    }
+
+    .customButtonText {
+      color: #ffecd1;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .idPhotoPreview {
+      width: 150px;
+      height: 100px;
+      border-radius: 8px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+      align-self: center;
+      object-fit: cover;
+      display: none;
+    }
+
+    .pickerContainer {
+      border: 1px solid #001524;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      background-color: #e8e9eb;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .picker {
+      height: 50px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 16px;
+      padding: 0 10px;
+      outline: none;
+      color: #001524;
+    }
+
+    .mapInstructionText {
+      font-size: 14px;
+      color: #000000;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .mapContainer {
+      height: 300px;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 15px;
+      border: 1.5px solid #78290f;
+      box-sizing: border-box;
+      background-color: #e0dfd5;
+      position: relative;
+      cursor: crosshair;
+    }
+
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(#a5c8a5 1px, transparent 1px), linear-gradient(90deg, #a5c8a5 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.5;
+    }
+
+    .map-marker {
+      position: absolute;
+      display: none;
+      transform: translate(-50%, -100%);
+      pointer-events: none;
+    }
+
+    .map-marker svg {
+      width: 30px;
+      height: 30px;
+      fill: red;
+    }
+
+    .confirmLocationButton {
+      background-color: #78290f;
+    }
+
+    .locationSelectedText {
+      font-size: 14px;
+      color: #000000;
+      text-align: center;
+      margin-bottom: 15px;
+      white-space: pre-line;
+    }
+
+    .workDaysContainer {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .dayButton {
+      padding: 8px 12px;
+      border: 1.5px solid #78290f;
+      border-radius: 20px;
+      margin: 4px;
+      background-color: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .selectedDayButton {
+      background-color: #15616d;
+    }
+
+    .dayButtonText {
+      color: #78290f;
+      font-size: 14px;
+    }
+
+    .selectedDayButtonText {
+      color: #ffecd1;
+    }
+
+    .timeInputContainer {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      align-self: center;
+      margin-bottom: 15px;
+    }
+
+    .timeInput {
+      width: 50px;
+      border: 1.5px solid #000000;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 16px;
+      text-align: center;
+      background-color: #e8e9eb;
+      box-sizing: border-box;
+      outline: none;
+      color: #001524;
+    }
+
+    .timeInput::placeholder {
+      color: #666;
+    }
+
+    .timeSeparator {
+      font-size: 18px;
+      margin: 0 5px;
+      color: #000000;
+    }
+
+    .timeRangeText {
+      font-size: 16px;
+      margin: 0 10px;
+      color: #000000;
+    }
+
+    .nextButton {
+      background-color: #15616d;
+      margin-top: 20px;
+      width: 30%;
+      align-self: center;
+    }
+
+    .nextButtonDisabled {
+      background-color: #313630;
+      width: 30%;
+      opacity: 0.5;
+      align-self: center;
+      cursor: not-allowed;
+    }
+
+    #form-step {
+      display: flex;
+      flex-direction: column;
+    }
+
+    #commission-step {
+      display: none;
+      flex-direction: column;
+    }
+
+    .spacer {
+      height: 50px;
+    }
+
+    /* SVG Icons */
+    .icon {
+      width: 24px;
+      height: 24px;
+      fill: none;
+      stroke: #000000;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .icon-checkbox {
+      width: 30px;
+      height: 30px;
+      stroke: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="scroll-view">
+
+    <!-- STEP 1: FORM -->
+    <div id="form-step">
+      <div class="title">Inscrire mon magasin</div>
+
+      <div class="sidetitle">À propos de vous:</div>
+
+      <div class="label">Nom et Prénom * :</div>
+      <input class="input" id="name" type="text" placeholder="Votre nom et prénom" />
+
+      <div class="label">Date de naissance * :</div>
+      <input class="input" id="dob" type="text" placeholder="JJ/MM/AAAA" maxlength="10" />
+      <div class="errorText" id="dob-error" style="display:none;"></div>
+
+      <div class="label">Numéro de téléphone :</div>
+      <input class="input" id="phone" type="tel" placeholder="0XXXXXXXXX" maxlength="14" />
+      <div class="errorText" id="phone-error" style="display:none;"></div>
+
+      <div class="sidetitle">Informations de connexion:</div>
+
+      <div class="label">Adresse email * :</div>
+      <input class="input" id="email" type="email" placeholder="adresse.email@exemple.com" autocapitalize="none" />
+
+      <div class="label">Mot de passe * :</div>
+      <div class="passwordInputContainer">
+        <input class="passwordInput" id="password" type="password" placeholder="********" autocapitalize="none" />
+        <button class="passwordToggle" onclick="togglePassword()">
+          <svg class="icon" id="eye-icon" viewBox="0 0 24 24">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidetitle">Sur votre activité:</div>
+
+      <div class="label">Nom du magasin :</div>
+      <input class="input" id="storeName" type="text" placeholder="Nom de votre magasin" />
+
+      <div class="label">Photo du magasin :</div>
+      <button class="customButton" onclick="document.getElementById('photo-upload').click()">
+        <span class="customButtonText">Importer</span>
+      </button>
+      <input type="file" id="photo-upload" accept="image/*" style="display: none;" onchange="previewImage(event)" />
+      <img class="idPhotoPreview" id="photo-preview" src="" alt="Aperçu" />
+
+      <div class="label">Type de magasin :</div>
+      <div class="pickerContainer">
+        <select class="picker" id="storeType" onchange="checkFormValidity()">
+          <option value="" disabled selected>-- Sélectionner un type --</option>
+          <option value="fast">Fast-food</option>
+          <option value="rest">Restaurant</option>
+          <option value="sup">Superette</option>
+          <option value="alim">Alimentation générale</option>
+          <option value="frleg">Fruits et légumes</option>
+          <option value="pzpat">Pizzeria et pâtisserie</option>
+          <option value="blnj">Boulangerie</option>
+          <option value="gatrad">Gâteaux traditionnels</option>
+          <option value="prodcos">Produits cosmétiques</option>
+          <option value="brtbc">Bureau-tabac</option>
+          <option value="bcvr">Boucherie (viande rouge)</option>
+          <option value="bcvb">Boucherie (viande blanche)</option>
+          <option value="pss">Poissonnerie</option>
+          <option value="epss">Épicerie</option>
+          <option value="cremerie">Crèmerie</option>
+        </select>
+      </div>
+
+      <div class="label">Numéro du registre de commerce * :</div>
+      <input class="input" id="commercialReg" type="text" placeholder="Entrez le numéro" />
+
+      <div class="label">Adresse du magasin :</div>
+
+      <div class="label">Commune :</div>
+      <input class="input" id="commune" type="text" placeholder="Entrez la commune" />
+
+      <div class="label">Chef-lieu / Village :</div>
+      <input class="input" id="village" type="text" placeholder="Entrez le chef-lieu ou village" />
+
+      <div class="label">Localisation GPS :</div>
+      <div class="mapInstructionText">Touchez la carte pour sélectionner</div>
+      <div class="mapContainer" id="map-area" onclick="onMapClick(event)">
+        <div class="map-grid"></div>
+        <div class="map-marker" id="map-pin">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+          </svg>
+        </div>
+      </div>
+
+      <button class="customButton confirmLocationButton" id="confirm-loc-btn" style="display:none;"
+        onclick="confirmLocation()">
+        <span class="customButtonText">Confirmer la Position sur la carte</span>
+      </button>
+
+      <div class="locationSelectedText" id="loc-selected-text" style="display:none;"></div>
+
+      <div class="sidetitle">Journées de travail :</div>
+      <div class="workDaysContainer">
+        <button class="dayButton" data-day="Sunday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Dimanche</span></button>
+        <button class="dayButton" data-day="Monday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Lundi</span></button>
+        <button class="dayButton" data-day="Tuesday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Mardi</span></button>
+        <button class="dayButton" data-day="Wednesday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Mercredi</span></button>
+        <button class="dayButton" data-day="Thursday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Jeudi</span></button>
+        <button class="dayButton" data-day="Friday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Vendredi</span></button>
+        <button class="dayButton" data-day="Saturday" onclick="toggleDay(this)"><span
+            class="dayButtonText">Samedi</span></button>
+      </div>
+
+      <div class="sidetitle">Horaire de travail :</div>
+
+      <div class="label">Jours de semaine :</div>
+      <div class="timeInputContainer">
+        <input class="timeInput" id="wd-open-h" type="text" placeholder="HH" maxlength="2" />
+        <div class="timeSeparator">:</div>
+        <input class="timeInput" id="wd-open-m" type="text" placeholder="MM" maxlength="2" />
+        <div class="timeRangeText"> - </div>
+        <input class="timeInput" id="wd-close-h" type="text" placeholder="HH" maxlength="2" />
+        <div class="timeSeparator">:</div>
+        <input class="timeInput" id="wd-close-m" type="text" placeholder="MM" maxlength="2" />
+      </div>
+      <div class="errorText" id="wd-error" style="display:none;"></div>
+
+      <div class="label">Weekend :</div>
+      <div class="timeInputContainer">
+        <input class="timeInput" id="we-open-h" type="text" placeholder="HH" maxlength="2" />
+        <div class="timeSeparator">:</div>
+        <input class="timeInput" id="we-open-m" type="text" placeholder="MM" maxlength="2" />
+        <div class="timeRangeText"> - </div>
+        <input class="timeInput" id="we-close-h" type="text" placeholder="HH" maxlength="2" />
+        <div class="timeSeparator">:</div>
+        <input class="timeInput" id="we-close-m" type="text" placeholder="MM" maxlength="2" />
+      </div>
+      <div class="errorText" id="we-error" style="display:none;"></div>
+
+      <button class="customButton nextButton nextButtonDisabled" id="next-btn" onclick="goToCommission()">
+        <span class="customButtonText">Suivant</span>
+      </button>
+
+      <div class="infoText">Les informations comportant une * ne seront pas rendues publiques, elles serviront pour la
+        vérification de votre identité.</div>
+      <div class="spacer"></div>
+    </div>
+
+    <!-- STEP 2: COMMISSION -->
+    <div id="commission-step">
+      <div class="title">À propos de la commission</div>
+
+      <div class="infoTextDes">
+        Cegget est une entreprise qui tend à être rentable et lucrative, à ce titre nous nous devons de réaliser des
+        bénéfices visant à payer pour nos employés et tous nos subordonnés. En finissant votre inscription et en
+        confirmant d'avoir lu le contenu de ce présent texte, vous consentez à diverser un pourcentage sur chaque
+        commande que nous liverons chez l'acheteur. Puisque vous avez choisi le type de magasin <span class="label"
+          style="display:inline; margin:0;" id="c-store-type"></span>
+        vous consentez donc à diverser <span class="label" style="display:inline; margin:0;" id="c-percent"></span> sur
+        chaque commande faite par un acheteur et livrée chez lui/elle par nos livreurs. Cette commission concerne donc
+        seulement et seulement les commandes que nous livrons. Si un acheteur vient récupérer sa commande par lui/elle
+        même, vous n'allez pas payer de commission sur cette commande.
+      </div>
+
+      <div class="sidetitle">À propos de la commission sur la visibilité</div>
+
+      <div class="infoTextDes">
+        En ce qui concerne les visites de votre magasin sur Cegget, nous considérons Cegget comme un espace publicitaire
+        vous permettant de communiquer plus facilement et atteindre les acheteurs potentiels de manière plus efficace. À
+        ce titre nous vous demanderons une petite commission pour honorer ce service rendu à votre visibilité. Cette
+        petite commission, sera de: <span class="label" style="display:inline; margin:0;" id="c-view-rate"></span>
+      </div>
+
+      <div class="passwordInputContainer" style="margin-top:20px; background: transparent; border: none; padding: 0;"
+        onclick="toggleTerms()">
+        <svg class="icon-checkbox" id="terms-checkbox" viewBox="0 0 24 24" style="margin-right: 10px;">
+          <!-- Square outline by default -->
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="#313630" stroke-width="2" />
+        </svg>
+        <span class="passwordInput" style="font-size: 16px;">Je confirme d'avoir lu et compris l'intégralité du texte
+          traitant sur les commissions que je dois diverser en m'inscrivant sur Cegget. Je donne mon consentement et mon
+          accord.</span>
+      </div>
+
+      <button class="customButton nextButton nextButtonDisabled" id="register-btn" onclick="submitRegistration()">
+        <span class="customButtonText">Je m'inscris</span>
+      </button>
+      <div class="spacer"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const COMMERCE_PERCENTAGES = {
+      fast: 5, rest: 5, sup: 3, alim: 3, frleg: 3, pzpat: 5,
+      blnj: 5, gatrad: 4, prodcos: 6, brtbc: 5, bcvr: 4, bcvb: 4,
+      pss: 4, epss: 4, cremerie: 3
+    };
+
+    let state = {
+      photoUri: null,
+      location: null,
+      tempLocation: null,
+      workDays: [],
+      termsAccepted: false,
+      passwordVisible: false
+    };
+
+    // Password Toggle
+    function togglePassword() {
+      state.passwordVisible = !state.passwordVisible;
+      const pwd = document.getElementById('password');
+      const icon = document.getElementById('eye-icon');
+      if (state.passwordVisible) {
+        pwd.type = "text";
+        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+      } else {
+        pwd.type = "password";
+        icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+      }
+    }
+
+    // Photo Upload
+    function previewImage(e) {
+      const file = e.target.files[0];
+      if (file) {
+        state.photoUri = URL.createObjectURL(file);
+        const img = document.getElementById('photo-preview');
+        img.src = state.photoUri;
+        img.style.display = 'block';
+        checkFormValidity();
+      }
+    }
+
+    // Days Selection
+    function toggleDay(btn) {
+      const day = btn.getAttribute('data-day');
+      const textSpan = btn.querySelector('.dayButtonText');
+
+      if (state.workDays.includes(day)) {
+        state.workDays = state.workDays.filter(d => d !== day);
+        btn.classList.remove('selectedDayButton');
+        textSpan.classList.remove('selectedDayButtonText');
+      } else {
+        state.workDays.push(day);
+        btn.classList.add('selectedDayButton');
+        textSpan.classList.add('selectedDayButtonText');
+      }
+      checkFormValidity();
+    }
+
+    // Map logic
+    function onMapClick(e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const pin = document.getElementById('map-pin');
+      pin.style.left = x + 'px';
+      pin.style.top = y + 'px';
+      pin.style.display = 'block';
+
+      // Fake lat/lng for preview
+      const lat = (36.75 + (Math.random() * 0.1)).toFixed(6);
+      const lng = (3.05 + (Math.random() * 0.1)).toFixed(6);
+      state.tempLocation = { lat, lng };
+
+      document.getElementById('confirm-loc-btn').style.display = 'flex';
+    }
+
+    function confirmLocation() {
+      if (state.tempLocation) {
+        state.location = state.tempLocation;
+        const txt = document.getElementById('loc-selected-text');
+        txt.innerHTML = `Localisation sélectionnée:\nLat: ${state.location.lat}\nLng: ${state.location.lng}`;
+        txt.style.display = 'block';
+        alert(`Localisation mise à jour !\nLat: ${state.location.lat}\nLng: ${state.location.lng}`);
+        checkFormValidity();
+      }
+    }
+
+    // Validations
+    function formatDob(val) {
+      let text = val.replace(/[^0-9]/g, '');
+      if (text.length >= 2) text = text.slice(0, 2) + '/' + text.slice(2);
+      if (text.length >= 5) text = text.slice(0, 5) + '/' + text.slice(5);
+      return text.slice(0, 10);
+    }
+    document.getElementById('dob').addEventListener('input', function (e) {
+      this.value = formatDob(this.value);
+      checkFormValidity();
+    });
+
+    function formatPhone(val) {
+      let text = val.replace(/\D/g, '').slice(0, 10);
+      let res = '';
+      if (text.length > 0) res += text.slice(0, 2);
+      if (text.length > 2) res += ' ' + text.slice(2, 4);
+      if (text.length > 4) res += ' ' + text.slice(4, 6);
+      if (text.length > 6) res += ' ' + text.slice(6, 8);
+      if (text.length > 8) res += ' ' + text.slice(8, 10);
+      return res;
+    }
+    document.getElementById('phone').addEventListener('input', function (e) {
+      this.value = formatPhone(this.value);
+      checkFormValidity();
+    });
+
+    ['wd-open-h', 'wd-open-m', 'wd-close-h', 'wd-close-m', 'we-open-h', 'we-open-m', 'we-close-h', 'we-close-m'].forEach(id => {
+      document.getElementById(id).addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '');
+        checkFormValidity();
+      });
+    });
+
+    const requiredIds = ['name', 'email', 'password', 'commercialReg'];
+    requiredIds.forEach(id => document.getElementById(id).addEventListener('input', checkFormValidity));
+
+    function isFormValid() {
+      const name = document.getElementById('name').value.trim();
+      const dob = document.getElementById('dob').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const pwd = document.getElementById('password').value.trim();
+      const storeType = document.getElementById('storeType').value;
+      const reg = document.getElementById('commercialReg').value.trim();
+
+      const wh = document.getElementById('wd-open-h').value;
+      const wm = document.getElementById('wd-open-m').value;
+      const ch = document.getElementById('wd-close-h').value;
+      const cm = document.getElementById('wd-close-m').value;
+
+      const weh = document.getElementById('we-open-h').value;
+      const wem = document.getElementById('we-open-m').value;
+      const cweh = document.getElementById('we-close-h').value;
+      const cwem = document.getElementById('we-close-m').value;
+
+      const validDob = dob.length === 10;
+      const validPhone = phone.length === 14;
+      const validWD = wh && wm && ch && cm;
+      const validWE = weh && wem && cweh && cwem;
+
+      return name && validDob && validPhone && email && pwd && storeType && reg && state.location && state.photoUri && state.workDays.length > 0 && validWD && validWE;
+    }
+
+    function checkFormValidity() {
+      const btn = document.getElementById('next-btn');
+      if (isFormValid()) {
+        btn.classList.remove('nextButtonDisabled');
+      } else {
+        btn.classList.add('nextButtonDisabled');
+      }
+    }
+
+    function goToCommission() {
+      if (!isFormValid()) {
+        alert("Veuillez remplir tous les champs obligatoires (y compris photo, type, localisation, jours et horaires).");
+        return;
+      }
+
+      const storeType = document.getElementById('storeType').value;
+      const typeText = document.getElementById('storeType').options[document.getElementById('storeType').selectedIndex].text;
+      const pct = COMMERCE_PERCENTAGES[storeType] || 0;
+      const viewRate = pct / 10;
+
+      document.getElementById('c-store-type').innerText = typeText;
+      document.getElementById('c-percent').innerText = pct + '%';
+      document.getElementById('c-view-rate').innerText = viewRate.toFixed(3) + ' DZD Pour chaque vu, visite, pickup';
+
+      document.getElementById('form-step').style.display = 'none';
+      document.getElementById('commission-step').style.display = 'flex';
+    }
+
+    // Commission Terms
+    function toggleTerms() {
+      state.termsAccepted = !state.termsAccepted;
+      const icon = document.getElementById('terms-checkbox');
+      const regBtn = document.getElementById('register-btn');
+
+      if (state.termsAccepted) {
+        icon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="#15616d" stroke="none"/><path d="M8 12l3 3 5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+        regBtn.classList.remove('nextButtonDisabled');
+      } else {
+        icon.innerHTML = '<rect x="3" y="3" width="18" height="18" rx="2" ry="2" fill="none" stroke="#313630" stroke-width="2"/>';
+        regBtn.classList.add('nextButtonDisabled');
+      }
+    }
+
+    function submitRegistration() {
+      if (!state.termsAccepted) return;
+      alert("Inscription réussie! Bienvenu parmi nous.");
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cegget - Mirror Commandes Vendeur</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --background: #f9f9f9;
+            --header-bg: #e8e9eb;
+            --primary: #78290f;
+            --secondary: #ffecd1;
+            --dark-text: #001524;
+            --icon-dark: #001524;
+            --timberwolf: #e0dfd5;
+            --green: #15616d;
+            --grey-des: #ebebeb;
+        }
+
+        body {
+            font-family: -apple-system, sans-serif;
+            background: var(--background);
+            margin: 0;
+            padding: 10px;
+        }
+
+        .scroll-view {
+            padding: 0 15px 20px 15px;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+
+        .order-card {
+            background: var(--background);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--timberwolf);
+            cursor: pointer;
+        }
+
+        .order-details {
+            padding: 15px;
+        }
+
+        .product-item-container {
+            border-bottom: 1px solid var(--header-bg);
+            padding: 15px 0;
+            display: grid;
+            grid-template-columns: 50px 1fr 100px 40px;
+            align-items: baseline;
+            row-gap: 10px;
+        }
+
+        .qty,
+        .name {
+            font-weight: 800;
+            font-size: 16px;
+            color: var(--dark-text);
+            text-align: center;
+        }
+
+        .price {
+            font-weight: 800;
+            color: var(--primary);
+            text-align: right;
+            font-size: 16px;
+        }
+
+        .checkbox-cell {
+            text-align: right;
+            cursor: pointer;
+            font-size: 28px;
+        }
+
+        .brand,
+        .vol-weight {
+            font-size: 14px;
+            color: var(--dark-text);
+            font-weight: 700;
+        }
+
+        .brand {
+            grid-column: 2;
+            grid-row: 2;
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        .vol-weight {
+            grid-column: 2 / span 2;
+            grid-row: 2;
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        .description-container {
+            grid-column: 1 / span 4;
+            grid-row: 3;
+            text-align: center;
+            background: var(--grey-des);
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--dark-text);
+        }
+
+        .total-price {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--primary);
+            text-align: right;
+            margin: 15px 0;
+        }
+
+        .mark-served-button {
+            background: var(--secondary);
+            padding: 15px;
+            border-radius: 15px;
+            color: var(--dark-text);
+            font-weight: bold;
+            border: none;
+            width: 30%;
+            display: block;
+            margin: 20px auto 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .mark-served-button:disabled {
+            background: var(--timberwolf);
+            cursor: not-allowed;
+        }
+
+        .served-status {
+            color: var(--green);
+            text-align: center;
+            font-weight: bold;
+            padding: 10px;
+            border: 1px solid var(--green);
+            border-radius: 15px;
+            width: 30%;
+            margin: 20px auto 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scroll-view" id="app"></div>
+
+    <script>
+        let orders = [{
+            id: '1', commandId: 'CMD-8821', pseudonyme: 'Kamel R.', montantTotal: 520, isServedUI: false,
+            products: [
+                { id: 'p1', name: "Jus d'Orange", brand: 'Ifri', description: 'Pur jus sans sucre ajouté.', quantityWeightVolume: 2, unitKey: '1.5 Litres', price: 200, isChecked: true },
+                { id: 'p2', name: 'Pain Complet', brand: 'Tradition', description: 'Fermentation longue.', quantityWeightVolume: 1, unitKey: '500 g', price: 120, isChecked: false }
+            ]
+        }];
+        let expandedOrderId = '1';
+        let expandedProductId = null;
+
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = orders.map(order => {
+                const allChecked = order.products.every(p => p.isChecked);
+                const isExpanded = expandedOrderId === order.id;
+
+                return `
+                <div class="order-card">
+                    <div class="order-header" onclick="window.toggleExpand('${order.id}')">
+                        <div>
+                            <p style="font-size:18px; font-weight:bold; color:var(--dark-text); margin:0">${order.commandId}</p>
+                            <p style="margin:4px 0 0 0; color:var(--dark-text); font-size:14px; font-weight:600;">Par ${order.pseudonyme}</p>
+                        </div>
+                        <i class="fas ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}" style="color:#001524"></i>
+                    </div>
+                    
+                    ${isExpanded ? `
+                    <div class="order-details">
+                        ${order.products.map(p => `
+                            <div class="product-item-container" onclick="window.toggleDesc('${p.id}', event)" style="cursor: pointer;">
+                                <div class="qty">${p.quantityWeightVolume}x</div>
+                                <div class="name">${p.name}</div>
+                                <div class="price">${p.quantityWeightVolume * p.price} DZD</div>
+                                
+                                <div class="checkbox-cell" onclick="window.toggleCheck('${p.id}', event)">
+                                    <i class="${p.isChecked ? 'fas fa-check-square' : 'far fa-square'}" 
+                                       style="color: ${p.isChecked ? 'var(--primary)' : 'var(--icon-dark)'}"></i>
+                                </div>
+                                
+                                ${p.brand ? `<div class="brand">Marque : ${p.brand}</div>` : ''}
+                                <div class="vol-weight">Vol/Poids : ${p.unitKey}</div>
+                                
+                                ${expandedProductId === p.id ? `<div class="description-container">${p.description}</div>` : ''}
+                            </div>
+                        `).join('')}
+                        <div class="total-price">Total : ${order.montantTotal} DZD</div>
+                        ${order.isServedUI ?
+                            `<div class="served-status">Prête ✓</div>` :
+                            `<button class="mark-served-button" ${!allChecked ? 'disabled' : ''} onclick="window.markServed()">Prête</button>`
+                        }
+                    </div>` : ''}
+                </div>
+            `;
+            }).join('');
+        }
+
+        window.toggleExpand = (id) => { expandedOrderId = (expandedOrderId === id) ? null : id; render(); };
+        window.toggleDesc = (id, event) => { event.stopPropagation(); expandedProductId = (expandedProductId === id) ? null : id; render(); };
+        window.toggleCheck = (id, event) => { event.stopPropagation(); const p = orders[0].products.find(x => x.id === id); p.isChecked = !p.isChecked; render(); };
+        window.markServed = () => { orders[0].isServedUI = true; render(); };
+        render();
+    </script>
+</body>
+
+</html>

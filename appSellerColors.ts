@@ -1,0 +1,45 @@
+const palette = {
+    orangeRed: '#78290f',
+    platinum: '#e8e9eb',
+    timberwolf: '#e0dfd5',
+    onyx: '#001524',
+    sandy: '#ffecd1',
+    punk: 'rgba(221, 30, 59, 1)',
+    white: '#f9f9f9',
+    green: '#15616d',
+    grey: '#313630',
+    nwar: '#000000',
+    acvhan: '#fff',
+    rouge: 'red',
+};
+
+export const Colors = {
+    light: {
+        text: palette.onyx,
+        background: palette.white,
+        tint: palette.orangeRed,
+        icon: palette.onyx,
+        tabIconDefault: palette.timberwolf,
+        tabIconSelected: palette.orangeRed,
+        surface: palette.platinum,
+        accent: palette.sandy,
+        green: palette.green,
+        greyDes: palette.grey,
+        textNormal: palette.nwar,
+        errorText: palette.rouge
+    },
+    dark: {
+        text: palette.platinum,
+        background: palette.onyx,
+        tint: palette.orangeRed,
+        icon: palette.platinum,
+        tabIconDefault: '#687076',
+        tabIconSelected: palette.orangeRed,
+        surface: '#3d4244',
+        accent: palette.sandy,
+        green: palette.green,
+        greyDes: '#aaa',
+        textNormal: palette.acvhan,
+        errorText: palette.punk,
+    },
+};

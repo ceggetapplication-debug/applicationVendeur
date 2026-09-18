@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aperçu Premium KMRS - 100% Identique</title>
+    <style>
+        :root {
+            --teal: #001524;
+            --brown: #78290f;
+            --bg-color: #f8f8f8;
+            --white: #ffffff;
+            --black: #000000;
+            --gold: #ffd700;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #222;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .phone-mockup {
+            width: 375px;
+            height: 812px;
+            background-color: var(--bg-color);
+            border-radius: 40px;
+            border: 8px solid #333;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* modalHeader - Aligné à gauche avec le chevron */
+        .header {
+            background-color: var(--white);
+            height: 70px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 0 15px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .back-chevron {
+            color: var(--teal);
+            font-size: 35px;
+            cursor: pointer;
+            margin-right: 15px;
+        }
+
+        .title {
+            color: #333;
+            font-size: 20px;
+            font-weight: bold;
+            flex: 1;
+            text-align: left;
+            /* ALIGNÉ À GAUCHE */
+        }
+
+        .content {
+            padding: 20px 15px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .presentation-text {
+            color: #555;
+            font-size: 16px;
+            text-align: left;
+            /* ALIGNÉ À GAUCHE */
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 17px;
+            font-weight: 700;
+            text-align: left;
+            /* ALIGNÉ À GAUCHE */
+            margin-bottom: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            padding: 10px 0;
+            gap: 10px;
+        }
+
+        /* STYLE dealButton - Textes centrés à l'intérieur du bouton */
+        .deal-button {
+            background-color: var(--white);
+            padding: 15px;
+            border-radius: 24px;
+            flex: 1;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* CENTRÉ ICI */
+            justify-content: center;
+            position: relative;
+            cursor: pointer;
+            box-shadow: 0 10px 30px #00000010;
+            border: 1px solid var(--bg-color);
+            transition: transform 0.1s;
+        }
+
+        .deal-button:active {
+            transform: scale(0.97);
+        }
+
+        /* Icône info grande et visible */
+        .info-i {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--bg-color);
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--brown);
+            font-weight: bold;
+            font-size: 18px;
+            z-index: 2;
+        }
+
+        .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        /* largeButtonLabel - CENTRÉ */
+        .label {
+            color: var(--teal);
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            /* CENTRÉ ICI */
+            letter-spacing: -0.5px;
+        }
+
+        /* buttonPrice - CENTRÉ */
+        .price {
+            color: var(--brown);
+            font-size: 15px;
+            font-weight: 600;
+            margin-top: 8px;
+            opacity: 0.7;
+            text-align: center;
+            /* CENTRÉ ICI */
+        }
+
+        /* OVERLAY LOGIQUE */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #00000080;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .info-container {
+            background-color: var(--bg-color);
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            padding-top: 35px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .modal-scroll {
+            padding: 0 20px 20px 20px;
+            overflow-y: auto;
+            flex: 1;
+            margin-top: 20px;
+        }
+
+        /* Header de l'overlay : Chevron et Titre sur la MÊME LIGNE */
+        .modal-header {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 20px;
+        }
+
+        /* Le Chevron de fermeture - Placé à GAUCHE */
+        .close-chevron {
+            color: var(--teal);
+            font-size: 35px;
+            cursor: pointer;
+            margin-right: 15px;
+            /* Marge à droite pour pousser le titre */
+        }
+
+        .modal-header .section-title {
+            margin: 0;
+            font-size: 20px;
+            flex: 1;
+        }
+
+        /* Boutons d'action : 100% Identiques en forme */
+        .confirm-btns {
+            display: none;
+            margin-top: 30px;
+            flex-direction: row;
+            justify-content: space-between;
+            width: 100%;
+            gap: 15px;
+        }
+
+        .btn-confirm,
+        .btn-cancel {
+            flex: 1;
+            height: 55px;
+            /* Même hauteur */
+            border-radius: 12px;
+            /* Même arrondi */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .btn-confirm {
+            background-color: var(--teal);
+            color: var(--white);
+        }
+
+        .btn-cancel {
+            background-color: #343a40;
+            color: var(--white);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="phone-mockup">
+        <!-- ÉCRAN PRINCIPAL -->
+        <div class="header">
+            <div class="back-chevron" onclick="alert('Action: onClose()')">‹</div>
+            <div class="title">Nos Offres Premium</div>
+        </div>
+
+        <div class="content">
+            <div class="presentation-text">Vous avez envie de profiter au maximum de l'application Cegget? Ces offres
+                Premium sont pour vous!!</div>
+            <div class="section-title">Choisissez votre formule :</div>
+
+            <div class="button-group">
+                <!-- PACK 3 -->
+                <div class="deal-button" onclick="openConfirm('Pack 3 Gestion', '3600')">
+                    <div class="info-i"
+                        onclick="openInfo(event, 'Infos Pack 3', 'Ajoutez 1 à 3 membres dans votre équipe de gestion du magasin, pour pouvoir donner à chacun une fonction dans la gestion de votre compte Cegget. \n\nLes membres pourront voir les écrans que vous leur permettrez (Magasin, Com, Commandes).')">
+                        i</div>
+                    <div class="icon" style="color: var(--teal);">👥</div>
+                    <div class="label">Pack 3<br>Gestion</div>
+                    <div class="price">3600 DZD</div>
+                </div>
+
+                <!-- PACK 4 -->
+                <div class="deal-button" onclick="openConfirm('Pack 4 Recette', '4800')">
+                    <div class="info-i"
+                        onclick="openInfo(event, 'Infos Pack 4', 'Pour seulement 4800 DZD par an, profitez de tous les avantages du Pack 3, plus le module Recette : \n\nLe membre pourra voir toutes les informations concernant vos gains et revenus gagnés.')">
+                        i</div>
+                    <div class="icon" style="color: var(--gold);">👤✨</div>
+                    <div class="label">Pack 4<br>Recette</div>
+                    <div class="price">4800 DZD</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL (INFO & CONFIRMATION) -->
+        <div id="overlay">
+            <div class="info-container">
+                <div class="modal-scroll">
+                    <!-- LE CHEVRON À GAUCHE ET LE TITRE -->
+                    <div class="modal-header">
+                        <div class="close-chevron" onclick="closeOverlay()">‹</div>
+                        <div id="m-title" class="section-title">TITRE</div>
+                    </div>
+
+                    <div id="m-body" class="presentation-text" style="white-space: pre-wrap;">Corps du message...</div>
+
+                    <!-- BOUTONS 100% IDENTIQUES -->
+                    <div id="confirm-area" class="confirm-btns">
+                        <button class="btn-confirm"
+                            onclick="alert('Notification Admin envoyée avec succès !'); closeOverlay();">Confirmer</button>
+                        <button class="btn-cancel" onclick="closeOverlay()">Annuler</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openInfo(event, title, body) {
+            event.stopPropagation();
+            document.getElementById('m-title').innerText = title;
+            document.getElementById('m-body').innerText = body;
+            document.getElementById('confirm-area').style.display = 'none';
+            document.getElementById('overlay').style.display = 'flex';
+        }
+
+        function openConfirm(title, price) {
+            document.getElementById('m-title').innerText = title;
+            document.getElementById('m-body').innerText = "Êtes-vous sûr de vouloir activer le premium " + title + " pour un montant de " + price + " DZD ?";
+            document.getElementById('confirm-area').style.display = 'flex';
+            document.getElementById('overlay').style.display = 'flex';
+        }
+
+        function closeOverlay() {
+            document.getElementById('overlay').style.display = 'none';
+        }
+    </script>
+
+</body>
+
+</html>
