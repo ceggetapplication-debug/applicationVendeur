@@ -1,34 +1,35 @@
 {
   "expo": {
     "name": "Taḥanuţ Cegget",
-    "slug": "Taḥanuţ Cegget",
+    "slug": "CeggetSeller",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": ".assets/images/logAppKMRS.png",
-    "scheme": "myapp",
+    "icon": "./assets/images/logAppKMRS.png",
+    "scheme": "ceggetseller",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.cegget.ceggettah"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": ".assets/images/logAppKMRS.png",
+        "foregroundImage": "./assets/images/logAppKMRS.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.koceiladrk.cegget"
+      "package": "com.cegget.ceggettah"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": ".assets/images/logAppKMRS.png"
+      "favicon": "./assets/images/logAppKMRS.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": ".assets/images/logAppKMRS.png",
+          "image": "./assets/images/logo6.5.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

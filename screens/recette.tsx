@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { calculateCeggetGain, COMMERCE_PERCENTAGES, applyMultipleOf5, CommerceType, generateWeeklyViewsData, DeliveryMode } from '../logic/gainSellerLogic';
+import { calculateCeggetGain, COMMERCE_PERCENTAGES, applyMultipleOf5, CommerceType, generateWeeklyViewsData, DeliveryMode, Order, StoreOrder, OrderItem, StoreGain, CeggetGainResult, WeeklyViewsRow } from '../logic/gainSellerLogic';
 import { account, databases, config, Query } from '@/app/(main)/calculation-logic/appwriteConfig';
 import { Models } from 'react-native-appwrite';
-import { } from '../logic/gainSellerLogic';
 import { router, useLocalSearchParams } from 'expo-router';
-import { DeepLinkBackend } from '../backends/invitDeepLnkMail';
-import { Text, View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useAppTranslation } from '@/app/(main)/translations/data/translationCentralization';
+import { Text, View, StyleSheet, ScrollView, Alert, useColorScheme } from 'react-native';
+import { Colors } from '../appSellerColors';
+import { useAppTranslation } from '../translations/data/translationCentralization';
 
 interface StoreDocument extends Models.Document {
   $id: string;
@@ -45,17 +44,6 @@ interface ProductInOrder {
   isChecked: boolean;
 }
 
-interface Order {
-  id: string;
-  commandId: string;
-  storeId: string;
-  products: ProductInOrder[];
-  montantTotal: number;
-  deliveryDate: string;
-  pseudonyme: string;
-  isServedUI: boolean;
-}
-
 interface ProductForDailyRevenue {
   name: string;
   quantityWeightVolume?: number;
@@ -87,7 +75,10 @@ interface WeeklyRevenueItem {
 
 export default function RecetteScreen() {
   const { t } = useAppTranslation();
-  const params = useLocalSearchParams();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const colors = Colors[theme];
+  const styles = getStyles(theme);
   const [orders, setOrders] = useState<OrderDocument[]>([]);
   const [storeData, setStoreData] = useState<StoreDocument | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -117,50 +108,25 @@ export default function RecetteScreen() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const handleDeepLink = async () => {
-      const { inviteId } = params;
-      if (inviteId) {
-        setIsLoading(true);
-        try {
-          const result = await DeepLinkBackend.processInvite({
-            inviteId: inviteId as string
-          }) as { success: boolean; permissions?: { mystore: boolean; mynews: boolean; commands: boolean; recette: boolean } };
-          if (result.success && result.permissions) {
-            const p = result.permissions;
-            if (p.mystore) router.push('/appSeller/screens/myStore');
-            else if (p.mynews) router.push('/appSeller/screens/myNews');
-            else if (p.commands) router.push('/appSeller/screens/commands');
-            else if (p.recette) router.push('/appSeller/screens/recette');
-          }
-        } catch (e) {
-          Alert.alert(t('general.error'), t('auth/invalid-link') || "Lien invalide");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    handleDeepLink();
-  }, [params]);
-
   const stats = useMemo(() => {
     if (!storeData || orders.length === 0) return null;
 
     const dailyData: DailyRevenueItem[] = orders.map((o: OrderDocument) => {
-      const res = calculateCeggetGain({
+      const orderPayload: Order = {
         orderId: o.commandId,
         deliveryMode: (o.deliveryType || o.deliveryMode || 'normal') as DeliveryMode,
         stores: [{
           storeId: storeData.$id,
           commerceType: storeData.type,
-          items: o.products.map((p: ProductInOrder) => ({
+          items: o.products.map((p: ProductInOrder): OrderItem => ({
             productId: p.id,
             price: p.price,
             quantity: p.quantityWeightVolume
           }))
-        }]
-      });
-      const storeGain = res.storeGains[0];
+        } as StoreOrder]
+      };
+      const res: CeggetGainResult = calculateCeggetGain(orderPayload);
+      const storeGain: StoreGain = res.storeGains[0];
 
       return {
         id: o.commandId,
@@ -184,7 +150,7 @@ export default function RecetteScreen() {
 
     dailyData.forEach(item => {
       const dateObj = item.rawDate ? new Date(item.rawDate) : new Date();
-      const dayName = dateObj.toLocaleDateString('fr-FR', { weekday: 'long' });
+      const dayName = dateObj.toLocaleDateString('kab-KAB', { weekday: 'long' });
       const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
       if (!weekMap[capitalizedDay]) {
@@ -211,13 +177,13 @@ export default function RecetteScreen() {
     };
   }, [orders, storeData]);
 
-  const viewsData = storeData ? generateWeeklyViewsData(storeData.type as CommerceType, storeData.vusNormaux || 0, storeData.vusPickup || 0) : [];
+  const viewsData: WeeklyViewsRow[] = storeData ? generateWeeklyViewsData(storeData.type as CommerceType, storeData.vusNormaux || 0, storeData.vusPickup || 0) : [];
   const totalNormaux = viewsData.reduce((acc, curr) => acc + curr.normaux, 0);
   const totalPickup = viewsData.reduce((acc, curr) => acc + curr.pickup, 0);
   const totalSomme = viewsData.reduce((acc, curr) => acc + curr.sommeCalcul, 0);
 
   return (
-    <View style={[styles.screenContainer, { backgroundColor: '#f5f5f5' }]}>
+    <View style={[styles.screenContainer, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
 
         <View style={styles.tabsContainer}>
@@ -248,7 +214,7 @@ export default function RecetteScreen() {
                 {activeTab === 'daily' ? t('srvdCmnd') : t('revenueScreen.days')}
               </Text>
               <Text style={[styles.tableHeaderCell, { flex: 1 }]}>
-                {activeTab === 'daily' ? t('Items') : t('revenueScreen.count')}
+                {activeTab === 'daily' ? t('prods') : t('revenueScreen.count')}
               </Text>
               <Text style={[styles.tableHeaderCell, { flex: 1.2 }]}>
                 {t('montantKrs')}
@@ -297,7 +263,7 @@ export default function RecetteScreen() {
             </View>
             <View style={styles.infoBlock}>
               <Text style={styles.infoText}>
-                {t('txtgaininfokmrs', { percentage: (100 - COMMERCE_PERCENTAGES[storeData!.type as CommerceType]).toFixed(2) })}
+                {t('txtgaininfokmrs01', { percentage: (100 - COMMERCE_PERCENTAGES[storeData!.type as CommerceType]).toFixed(2) })}
               </Text>
             </View>
           </>
@@ -324,7 +290,7 @@ export default function RecetteScreen() {
               <Text style={[styles.commandIdText, styles.boldText, { flex: 2 }]}>{t('totalUpper')}</Text>
               <Text style={[styles.tableCell, styles.boldText, { flex: 1 }]}>{totalNormaux.toFixed(0)}</Text>
               <Text style={[styles.tableCell, styles.boldText, { flex: 1 }]}>{totalPickup.toFixed(0)}</Text>
-              <Text style={[styles.tableCell, styles.boldText, { flex: 1.2, color: '#ff7d00' }]}>{totalSomme.toFixed(2)} DZD</Text>
+              <Text style={[styles.tableCell, styles.boldText, { flex: 1.2, color: colors.tint }]}>{totalSomme.toFixed(2)} DZD</Text>
             </View>
             <View style={styles.totalRowBelowTable}>
               <Text style={styles.totalText}>
@@ -341,153 +307,154 @@ export default function RecetteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screenContainer: {
-    flex: 1,
-    backgroundColor: '#f0f0f0',
-    paddingTop: 10,
-    paddingHorizontal: 5,
-  },
-  scrollViewContent: {
-    flexGrow: 1,
-    paddingBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    marginTop: 15,
-    marginBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#78290f',
-    paddingBottom: 5,
-  },
-  tableContainer: {
-    backgroundColor: '#f1f1f1',
-    overflow: 'hidden',
-    marginBottom: 5,
-    marginTop: 5,
-  },
-  tableRowHeader: {
-    flexDirection: 'row',
-    backgroundColor: 'transparent',
-    paddingVertical: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: '#78290f',
-  },
-
-  tableHeaderCell: {
-    fontWeight: 'bold',
-    color: '#ffecd1',
-    textAlign: 'center',
-    fontSize: 12,
-    paddingVertical: 0,
-    paddingHorizontal: 5,
-  },
-  tableRow: {
-    flexDirection: 'row',
-    paddingVertical: 18,
-    borderBottomWidth: 1.2,
-    borderBottomColor: '#ffecd1',
-    alignItems: 'center',
-  },
-  tableCell: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#78290f',
-  },
-  commandIdText: {
-    flex: 1.5,
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: '#ffecd1',
-    paddingLeft: 5,
-    textAlign: 'left',
-  },
-  productItem: {
-    fontSize: 11,
-    color: '#333',
-    marginLeft: 10,
-    lineHeight: 16,
-    textAlign: 'left',
-  },
-  totalRowBelowTable: {
-    backgroundColor: 'transparent',
-    borderTopWidth: 3,
-    borderTopColor: '#e0dfdf',
-    marginTop: 0,
-    marginBottom: 15,
-    paddingVertical: 10,
-    textAlign: 'left',
-  },
-  totalText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  infoBlock: {
-    backgroundColor: 'transparent',
-    padding: 15,
-    marginBottom: 0,
-    marginTop: 10,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#000',
-    marginBottom: 2,
-    lineHeight: 18,
-  },
-  lastPaymentText: {
-    fontSize: 13,
-    color: '#000',
-    textAlign: 'left',
-    marginTop: 15,
-    fontStyle: 'italic',
-    marginBottom: 20,
-    paddingHorizontal: 15,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 15
-  },
-  tabActive: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#15616d',
-    borderBottomWidth: 2,
-    borderBottomColor: '#ff7d00',
-    paddingBottom: 5
-  },
-  tabInactive: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#e8e9eb',
-    opacity: 0.5
-  },
-  totalNetText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#78290f',
-    marginTop: 8
-  },
-  tableRowTotal: {
-    flexDirection: 'row',
-    paddingVertical: 18,
-    backgroundColor: 'transparent',
-    borderTopWidth: 2,
-    borderTopColor: '#000',
-    alignItems: 'center'
-  },
-  boldText: {
-    fontWeight: 'bold'
-  },
-  orangeText: {
-    color: '#003'
-  },
-
-});
+const getStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    screenContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+      paddingTop: 10,
+      paddingHorizontal: 5,
+    },
+    scrollViewContent: {
+      flexGrow: 1,
+      paddingBottom: 20,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginTop: 15,
+      marginBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: colors.tint,
+      paddingBottom: 5,
+    },
+    tableContainer: {
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+      marginBottom: 5,
+      marginTop: 5,
+    },
+    tableRowHeader: {
+      flexDirection: 'row',
+      backgroundColor: 'transparent',
+      paddingVertical: 12,
+      borderBottomWidth: 2,
+      borderBottomColor: colors.tint,
+    },
+    tableHeaderCell: {
+      fontWeight: 'bold',
+      color: colors.text,
+      textAlign: 'center',
+      fontSize: 12,
+      paddingVertical: 0,
+      paddingHorizontal: 5,
+    },
+    tableRow: {
+      flexDirection: 'row',
+      paddingVertical: 18,
+      borderBottomWidth: 1.2,
+      borderBottomColor: colors.background,
+      alignItems: 'center',
+    },
+    tableCell: {
+      flex: 1,
+      textAlign: 'center',
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    commandIdText: {
+      flex: 1.5,
+      fontSize: 13,
+      fontWeight: 'bold',
+      color: colors.text,
+      paddingLeft: 5,
+      textAlign: 'left',
+    },
+    productItem: {
+      fontSize: 11,
+      color: colors.text,
+      marginLeft: 10,
+      lineHeight: 16,
+      textAlign: 'left',
+    },
+    totalRowBelowTable: {
+      backgroundColor: 'transparent',
+      borderTopWidth: 3,
+      borderTopColor: colors.surface,
+      marginTop: 0,
+      marginBottom: 15,
+      paddingVertical: 10,
+      textAlign: 'left',
+    },
+    totalText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    infoBlock: {
+      backgroundColor: 'transparent',
+      padding: 15,
+      marginBottom: 0,
+      marginTop: 10,
+    },
+    infoText: {
+      fontSize: 12,
+      color: colors.text,
+      marginBottom: 2,
+      lineHeight: 18,
+    },
+    lastPaymentText: {
+      fontSize: 13,
+      color: colors.text,
+      textAlign: 'left',
+      marginTop: 15,
+      fontStyle: 'italic',
+      marginBottom: 20,
+      paddingHorizontal: 15,
+    },
+    tabsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      marginBottom: 20,
+      marginTop: 15,
+    },
+    tabActive: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.green,
+      borderBottomWidth: 2,
+      borderBottomColor: colors.tint,
+      paddingBottom: 5,
+    },
+    tabInactive: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.greyDes,
+      opacity: 0.5,
+    },
+    totalNetText: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      color: colors.tint,
+      marginTop: 8,
+    },
+    tableRowTotal: {
+      flexDirection: 'row',
+      paddingVertical: 18,
+      backgroundColor: 'transparent',
+      borderTopWidth: 2,
+      borderTopColor: colors.text,
+      alignItems: 'center',
+    },
+    boldText: {
+      fontWeight: 'bold',
+    },
+    orangeText: {
+      color: colors.green,
+    },
+  });
+};

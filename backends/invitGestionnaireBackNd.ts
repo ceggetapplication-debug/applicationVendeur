@@ -1,5 +1,5 @@
 import { ID, Query, Models } from 'react-native-appwrite';
-import { account, databases, config } from '@/app/(main)/calculation-logic/appwriteConfig';
+import { account, databases, config } from '../logic/appwriteConfig';
 
 export interface UserPermissions {
     mystore: boolean;

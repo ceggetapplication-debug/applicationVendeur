@@ -1,0 +1,65 @@
+import { StyleSheet } from 'react-native';
+
+export const PALETTE = {
+  deepBlue: '#001524',
+  teal: '#15616d',
+  linen: '#ffecd1',
+  orange: '#ff7d00',
+  russet: '#78290f',
+  grey: '#f9f9f9',
+  platinum: '#e8e9eb8c',
+  timberwolf: 'rgba(211, 165, 79, 0.9)',
+  white: '#ffffff',
+  black: '#000000',
+  roj: 'rgb(212, 3, 3)',
+  punk: '#ea6d69ff',
+  gri: '#313630',
+  bloug: '#15346dff'
+};
+
+export const Colors = {
+  light: {
+    text: PALETTE.deepBlue,
+    background: PALETTE.grey,
+    tint: PALETTE.russet,
+    icon: PALETTE.deepBlue,
+    tabIconDefault: PALETTE.timberwolf,
+    tabIconSelected: PALETTE.russet,
+    surface: PALETTE.platinum,
+    accent: PALETTE.linen,
+    green: PALETTE.teal,
+    greyDes: PALETTE.gri,
+    textNormal: PALETTE.black,
+    errorText: PALETTE.punk,
+    noir: PALETTE.black,
+    blond: PALETTE.white,
+    blou: PALETTE.deepBlue,
+    azuvagh: PALETTE.roj,
+    globeu: PALETTE.russet,
+    ranjou: PALETTE.orange,
+    textu: PALETTE.gri,
+    txtDghn: PALETTE.platinum
+  },
+  dark: {
+    text: PALETTE.linen,
+    background: PALETTE.gri,
+    tint: PALETTE.teal,
+    icon: PALETTE.platinum,
+    ranjou: PALETTE.russet,
+    tabIconDefault: '#687076',
+    tabIconSelected: PALETTE.orange,
+    surface: PALETTE.platinum,
+    accent: PALETTE.linen,
+    green: PALETTE.teal,
+    greyDes: PALETTE.grey,
+    textNormal: PALETTE.white,
+    errorText: PALETTE.roj,
+    noir: PALETTE.black,
+    blond: PALETTE.white,
+    blou: PALETTE.bloug,
+    azuvagh: PALETTE.roj,
+    globeu: PALETTE.punk,
+    textu: PALETTE.white,
+    txtDghn: PALETTE.gri
+  },
+};

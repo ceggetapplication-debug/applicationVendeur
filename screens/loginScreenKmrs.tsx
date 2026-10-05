@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Linking, Image, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { account } from './appwriteConfig';
-import ForgotPasswordModal from '../modals-others/modalChangeResetPassword';
+import ForgotPasswordModal from '../modals/modalChangeResetPassword';
 import { useRouter } from 'expo-router';
 import { AppwriteException } from 'react-native-appwrite';
-import { getAppLogo } from '../calculation-logic/imagesLogic';
+import { getAppLogo } from '../logic/imagesLogic';
 import { useAppTranslation } from '../translations/data/translationCentralization';
 import { Colors } from '../appSellerColors';
 
@@ -131,7 +131,7 @@ const LoginScreen = () => {
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>{t('login')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.registerButton} onPress={() => router.push('/(main)/modals-others/registrationForm')}>
+            <TouchableOpacity style={styles.registerButton} onPress={() => router.push('/appSeller/modals/registrationFromKmrs')}>
               <Text style={styles.registerButtonText}>{t('registerMySelf')}</Text>
             </TouchableOpacity>
           </>
@@ -139,7 +139,7 @@ const LoginScreen = () => {
         {accountNotFound && (
           <>
             <Text style={styles.notFoundText}>{t('auth/user-not-found')}</Text>
-            <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/(main)/modals-others/registrationForm')}>
+            <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/appSeller/modals/registrationFromKmrs')}>
               <Text style={styles.loginButtonText}>{t('registerMySelf')}</Text>
             </TouchableOpacity>
           </>
@@ -201,7 +201,7 @@ const getStyles = (theme: 'light' | 'dark') => StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    fontWeight: '650',
+    fontWeight: '600',
     alignSelf: 'center',
     color: Colors[theme].accent,
     marginBottom: 30,
@@ -209,7 +209,7 @@ const getStyles = (theme: 'light' | 'dark') => StyleSheet.create({
   },
   label: {
     fontSize: 15,
-    fontWeight: '620',
+    fontWeight: '600',
     color: Colors[theme].textNormal,
     marginBottom: 6,
     marginTop: 16,

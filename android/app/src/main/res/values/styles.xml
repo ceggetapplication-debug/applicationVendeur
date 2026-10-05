@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Thème principal de l'application -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:editTextBackground">@drawable/rn_edit_text_material</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="android:statusBarColor">#121212</item>
+    </style>
+
+    <!-- Thème de l'écran de démarrage (Splash Screen) -->
+    <style name="Theme.App.SplashScreen" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- On utilise la couleur sombre définie dans colors.xml -->
+        <item name="android:windowBackground">@color/splashscreen_background</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+</resources>

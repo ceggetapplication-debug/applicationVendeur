@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { ID } from 'react-native-appwrite';
-import { account, databases, functions, config, Query } from '@/app/(main)/calculation-logic/appwriteConfig';
+import { account, databases, functions, config, Query } from '../logic/appwriteConfig';
 import { TeamBackend } from './invitGestionnaireBackNd';
 
 const EMAIL_TEXTS = {

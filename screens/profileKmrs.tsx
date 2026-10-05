@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Platform, Linking, TextInput, Modal, Pressable, Switch } from 'react-native';
+import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Platform, Linking, TextInput, Modal, Pressable, Switch, useColorScheme } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { OneSignal } from 'react-native-onesignal';
+import { Colors } from '../appSellerColors';
 import TeamManagementScreen from '../modals/invitationGestionnaire';
 import PremiumKmrsOffersModal from '../modals/modalPremiumsKMRS';
-import { sizes, buildStoreProfilePhoto, buildStorePhoto, uploadToR2 } from '@/app/(main)/calculation-logic/imagesLogic';
-import { account, databases, config, Query, ID } from '@/app/(main)/calculation-logic/appwriteConfig';
-import { useAppTranslation } from '@/app/(main)/translations/data/translationCentralization';
-import { DeepLinkBackend } from '../backends/invitDeepLnkMail';
+import { sizes, buildStoreProfilePhoto, buildStorePhoto, uploadToR2 } from '../logic/imagesLogic';
+import { account, databases, config, Query, ID } from '../logic/appwriteConfig';
+import { useAppTranslation } from '../translations/data/translationCentralization';
 
 const s = sizes();
 
@@ -24,8 +24,12 @@ interface UserProfile {
   storeId?: string;
 }
 
-function ProfileSELLScreen() {
+function ProfileScreen() {
   const { t, setLanguage, currentLang: language } = useAppTranslation();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const colors = Colors[theme];
+  const styles = getStyles(theme);
   const params = useLocalSearchParams();
   const [currentView, setCurrentView] = useState<'menu' | 'accountDetails' | 'languages' | 'notifications' | 'gestion'>('menu');
   const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
@@ -153,43 +157,9 @@ function ProfileSELLScreen() {
     fetchGlobalSettings();
   }, []);
 
-  useEffect(() => {
-    const handleDeepLink = async () => {
-      const { inviteId } = params;
-      if (inviteId) {
-        setIsLoading(true);
-        try {
-          const result = await DeepLinkBackend.processInvite({
-            inviteId: inviteId as string
-          }) as { success: boolean; permissions?: { mystore: boolean; mynews: boolean; commands: boolean; recette: boolean } };
-          if (result.success && result.permissions) {
-            const p = result.permissions;
-            if (p.mystore) router.push('/appSeller/screens/myStore');
-            else if (p.mynews) router.push('/appSeller/screens/myNews');
-            else if (p.commands) router.push('/appSeller/screens/commands');
-            else if (p.recette) router.push('/appSeller/screens/recette');
-          }
-        } catch (e) {
-          Alert.alert(t('general.error'), t('auth/invalid-link') || "Lien invalide");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    handleDeepLink();
-  }, [params]);
-
   const toggleNewOrderNotifications = async (value: boolean) => {
     setReceiveNewOrderNotifications(value);
     OneSignal.User.addTag("receive_orders", value ? "true" : "false");
-  };
-
-  const togglePushNotifications = async (value: boolean) => {
-    setArePushNotificationsEnabled(value);
-    if (value) {
-      OneSignal.Notifications.requestPermission(true);
-    }
-    OneSignal.User.addTag("favorite_notifs", value ? "true" : "false");
   };
 
   const handleEditEmail = () => {
@@ -207,7 +177,7 @@ function ProfileSELLScreen() {
     try {
       setIsLoading(true);
       await account.createVerification(`${globalConfig.appDomain}/verify-email`);
-      Alert.alert(t('general.success'), t('profileScreen.emailLinkSentMessage'));
+      Alert.alert(t('general.success'), t('check_email_to_verify'));
       setEmailModalVisible(false);
     } catch (error) {
       Alert.alert(t('general.error'), t('genericError'));
@@ -240,7 +210,7 @@ function ProfileSELLScreen() {
       await account.createRecovery(userData.email, `${globalConfig.appDomain}/reset-password`);
       Alert.alert(
         t('general.success'),
-        t('profileScreen.passwordLinkSent')
+        t('check_email_to_verify')
       );
       setPasswordModalVisible(false);
     } catch (error) {
@@ -288,7 +258,7 @@ function ProfileSELLScreen() {
         if (authError.code === 401) {
           setPasswordError(t('auth/wrong-password'));
         } else if (authError.code === 429) {
-          setPasswordError(t('tooManyAttempts'));
+          setPasswordError(t('error.unknown_occurred'));
         } else {
           setPasswordError(t('genericError'));
         }
@@ -370,7 +340,6 @@ function ProfileSELLScreen() {
         };
         await uploadToR2(`stores/${userData.storeId}.jpg`, fileToUpload);
         setUserData({ ...userData, coverURL: buildStorePhoto(userData.storeId).cover });
-        Alert.alert(t('general.success'), t('profileScreen.photoUpdatedSuccess'));
       } catch (error) {
         Alert.alert(t('general.error'), "Erreur upload cover");
       } finally {
@@ -454,7 +423,7 @@ function ProfileSELLScreen() {
   const renderMenuItem = (iconName: string, label: string) => (
     <TouchableOpacity key={label} style={styles.menuItem} onPress={() => handlePressMenuItem(label)}>
       <View style={styles.menuItemLeft}>
-        <Ionicons name={iconName as any} size={24} color="#001524" />
+        <Ionicons name={iconName as any} size={24} color={colors.icon} />
         <Text style={styles.menuItemText}>{label}</Text>
       </View>
     </TouchableOpacity>
@@ -469,18 +438,18 @@ function ProfileSELLScreen() {
         <>
           <View style={styles.coverContainer}>
             {userData.coverURL && <Image source={{ uri: userData.coverURL }} style={styles.coverImage} />}
-            <TouchableOpacity style={styles.editCoverIcon} onPress={handlePressEditCoverPhoto}>
-              <Ionicons name="camera-outline" size={20} color="#fff" />
+            <TouchableOpacity style={styles.editPhotoIcon} onPress={handlePressEditCoverPhoto}>
+              <Ionicons name="camera-outline" size={20} color={colors.textNormal} />
             </TouchableOpacity>
           </View>
           <View style={styles.profileHeader}>
             <View style={styles.photoContainer}>
               <Image
                 style={styles.profilePhoto}
-                source={userData.photoURL ? { uri: userData.photoURL } : null}
+                source={userData.photoURL ? { uri: userData.photoURL } : undefined}
               />
               <TouchableOpacity style={styles.editPhotoIcon} onPress={handlePressEditPhoto}>
-                <Ionicons name="camera-outline" size={20} color="#fff" />
+                <Ionicons name="camera-outline" size={20} color={colors.textNormal} />
               </TouchableOpacity>
             </View>
             <View style={styles.userInfo}>
@@ -499,14 +468,8 @@ function ProfileSELLScreen() {
                   <View style={styles.notificationOptionRow}>
                     <Text style={styles.notificationOptionText}>{t('newCommandNotif')}</Text>
                     <Switch value={receiveNewOrderNotifications} onValueChange={toggleNewOrderNotifications}
-                      trackColor={{ false: '#001524', true: '#ff7d00' }}
-                      thumbColor={receiveNewOrderNotifications ? '#ffecd1' : '#15616d'} />
-                  </View>
-                  <View style={styles.notificationOptionRow}>
-                    <Text style={styles.notificationOptionText}>{t('profileScreen.favoriteNotif') || 'Notifications Favoris'}</Text>
-                    <Switch value={arePushNotificationsEnabled} onValueChange={togglePushNotifications}
-                      trackColor={{ false: '#001524', true: '#ff7d00' }}
-                      thumbColor={arePushNotificationsEnabled ? '#ffecd1' : '#15616d'} />
+                      trackColor={{ false: colors.text, true: colors.tint }}
+                      thumbColor={receiveNewOrderNotifications ? colors.accent : colors.green} />
                   </View>
                 </View>
               )}
@@ -522,7 +485,7 @@ function ProfileSELLScreen() {
       {currentView === 'accountDetails' && (
         <View style={styles.accountDetailsContainer}>
           <TouchableOpacity onPress={handleGoBackFromSubMenu} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color="#001524" />
+            <Ionicons name="chevron-back" size={24} color={colors.icon} />
           </TouchableOpacity>
           <ScrollView>
             <Text style={styles.accountDetailTitle}>{t('profileScreen.accountDetailsTitle')}</Text>
@@ -537,7 +500,7 @@ function ProfileSELLScreen() {
               <View style={styles.accountDetailValueRow}>
                 <Text style={styles.accountDetailValue}>{userData.email}</Text>
                 <TouchableOpacity onPress={handleEditEmail}>
-                  <Ionicons name="create-outline" size={20} color="#15616d" />
+                  <Ionicons name="create-outline" size={20} color={colors.green} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -546,7 +509,7 @@ function ProfileSELLScreen() {
               <View style={styles.accountDetailValueRow}>
                 <Text style={styles.accountDetailValue}>********</Text>
                 <TouchableOpacity onPress={handleChangePassword}>
-                  <Ionicons name="create-outline" size={20} color="#0b0f10ff" />
+                  <Ionicons name="create-outline" size={20} color={colors.green} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -555,12 +518,12 @@ function ProfileSELLScreen() {
               <View style={styles.accountDetailValueRow}>
                 <Text style={styles.accountDetailValue}>{userData.phoneNumber}</Text>
                 <TouchableOpacity onPress={handleChangePhoneNumber}>
-                  <Ionicons name="create-outline" size={20} color="#15616d" />
+                  <Ionicons name="create-outline" size={20} color={colors.green} />
                 </TouchableOpacity>
               </View>
             </View>
             <View style={styles.accountDetailItem}>
-              <Text style={styles.accountDetailLabel}>{t('profileScreen.storeAdress')}</Text>
+              <Text style={styles.accountDetailLabel}>{t('storeAddressLabel')}</Text>
               <View style={styles.accountDetailValueRow}>
                 <Text style={styles.accountDetailValue}>{userData.storeAdress}</Text>
               </View>
@@ -571,10 +534,10 @@ function ProfileSELLScreen() {
       {currentView === 'languages' && (
         <View style={styles.languagesContainer}>
           <TouchableOpacity onPress={handleGoBackFromSubMenu} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color="#001524" />
+            <Ionicons name="chevron-back" size={24} color={colors.icon} />
           </TouchableOpacity>
           <ScrollView>
-            <Text style={styles.languageTitle}>{t('profileScreen.languagesTitle') || 'Languages'}</Text>
+            <Text style={styles.languageTitle}>{t('profileScreen.languages') || 'Languages'}</Text>
             <TouchableOpacity style={styles.languageItem} onPress={() => handleLanguageSelect('fr')}>
               <Text style={styles.languageText}>Français (fr)</Text>
             </TouchableOpacity>
@@ -590,7 +553,7 @@ function ProfileSELLScreen() {
           <View style={styles.modalView}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setEmailModalVisible(false)} style={styles.backButtonModal}>
-                <Ionicons name="chevron-back" size={24} color="#001524" />
+                <Ionicons name="chevron-back" size={24} color={colors.icon} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{t('profileScreen.changeEmailTitle')}</Text>
               <View style={{ width: 24 }} />
@@ -612,7 +575,7 @@ function ProfileSELLScreen() {
           <View style={styles.modalView}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setPasswordModalVisible(false)} style={styles.backButtonModal}>
-                <Ionicons name="chevron-back" size={24} color="#001524" />
+                <Ionicons name="chevron-back" size={24} color={colors.icon} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{t('profileScreen.changePasswordTitle')}</Text>
               <View style={{ width: 24 }} />
@@ -646,7 +609,7 @@ function ProfileSELLScreen() {
           <View style={styles.modalView}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => { setPhoneModalVisible(false); }} style={styles.backButtonModal}>
-                <Ionicons name="chevron-back" size={24} color="#001524" />
+                <Ionicons name="chevron-back" size={24} color={colors.icon} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{t('profileScreen.changePhoneNumberTitle')}</Text>
               <View style={{ width: 24 }} />
@@ -671,17 +634,17 @@ function ProfileSELLScreen() {
           <View style={styles.modalView}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleGoBackFromContactModal} style={styles.backButtonModal}>
-                <Ionicons name="chevron-back" size={24} color="#001524" />
+                <Ionicons name="chevron-back" size={24} color={colors.icon} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{t('profileScreen.contactUsTitle')}</Text>
               <View style={{ width: 24 }} />
             </View>
             <TouchableOpacity style={styles.contactOption} onPress={handleContactByEmail}>
-              <Ionicons name="mail-outline" size={24} color="#001524" style={{ marginRight: 10 }} />
+              <Ionicons name="mail-outline" size={24} color={colors.icon} style={{ marginRight: 10 }} />
               <Text style={styles.contactOptionText}>{t('profileScreen.contactByEmail')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.contactOption} onPress={handleContactByPhone}>
-              <Ionicons name="call-outline" size={24} color="#001524" style={{ marginRight: 10 }} />
+              <Ionicons name="call-outline" size={24} color={colors.icon} style={{ marginRight: 10 }} />
               <Text style={styles.contactOptionText}>{t('profileScreen.contactByPhone')}</Text>
             </TouchableOpacity>
           </View>
@@ -693,12 +656,12 @@ function ProfileSELLScreen() {
           <View style={styles.modalView}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={handleGoBackFromDeleteAccountModal} style={styles.backButtonModal}>
-                <Ionicons name="chevron-back" size={24} color="#001524" />
+                <Ionicons name="chevron-back" size={24} color={colors.icon} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{t('profileScreen.deleteAccountTitle')}</Text>
               <View style={{ width: 24 }} />
             </View>
-            <Text style={[styles.modalMessage, { color: '#ff7d00', fontWeight: 'bold' }]}>
+            <Text style={[styles.modalMessage, { color: colors.tint, fontWeight: 'bold' }]}>
               {t('profileScreen.deleteAccountMessage')}
             </Text>
             <Text style={styles.modalLabel}>{t('profileScreen.deleteReasonLabel')}</Text>
@@ -706,17 +669,17 @@ function ProfileSELLScreen() {
               style={[styles.modalInput, { height: 100, textAlignVertical: 'top' }]}
               multiline maxLength={150} value={deleteReason} onChangeText={setDeleteReason}
               placeholder={t('profileScreen.deleteReasonPlaceholder')} />
-            <Text style={{ alignSelf: 'flex-end', fontSize: 12, color: '#555', marginTop: 2, marginBottom: 10 }}>
+            <Text style={{ alignSelf: 'flex-end', fontSize: 12, color: colors.greyDes, marginTop: 2, marginBottom: 10 }}>
               {deleteReason.length}/150
             </Text>
             <Pressable
-              style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: '#15616d', marginTop: 20 }, !deleteReason.trim() && styles.disabledButtonModal]}
+              style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: colors.green, marginTop: 20 }, !deleteReason.trim() && styles.disabledButtonModal]}
               onPress={handleDeleteAccount} disabled={!deleteReason.trim()}>
               <Text style={[styles.textStyle, !deleteReason.trim() && styles.disabledButtonText]}>
                 {t('profileScreen.cancelContract')}
               </Text>
             </Pressable>
-            <Pressable style={[styles.modalButton, { backgroundColor: '#ff7d00' }]} onPress={handleGoBackFromDeleteAccountModal}>
+            <Pressable style={[styles.modalButton, { backgroundColor: colors.tint }]} onPress={handleGoBackFromDeleteAccountModal}>
               <Text style={styles.textStyle}>{t('general.cancel')}</Text>
             </Pressable>
           </View>
@@ -732,7 +695,7 @@ function ProfileSELLScreen() {
           <View style={styles.modalView}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setAvantagesModalVisible(false)} style={styles.backButtonModal}>
-                <Ionicons name="chevron-back" size={24} color="#001524" />
+                <Ionicons name="chevron-back" size={24} color={colors.icon} />
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{t('profileScreen.avontajeu')}</Text>
               <View style={{ width: 24 }} />
@@ -745,20 +708,20 @@ function ProfileSELLScreen() {
                     {t('youHavePackActive').replace('{{pack}}', premiumPackName)}
                   </Text>
                   <Text style={styles.modalMessage}>
-                    {t('endDateIs').replace('{{date}}', premiumEndDate)}
+                    {t('endDateIs', { date: premiumEndDate })}
                   </Text>
                 </>
               ) : (
                 <>
                   <Text style={styles.accountDetailValue}>
-                    {t('noActiveOffer')}
+                    {t('cgheditosIndisponibleu')}
                   </Text>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.modalButtonSave]}
                     activeOpacity={0.7}
                     onPress={() => setIsPremiumOffersVisible(true)}
                   >
-                    <Text style={styles.textStyle}>{t('activatePremiumBtn')}</Text>
+                    <Text style={styles.textStyle}>{t('general.confirm')}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -775,300 +738,307 @@ function ProfileSELLScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: Platform.OS === 'android' ? 30 : 0,
-    padding: 10,
-    backgroundColor: '#f8f8f8',
-  },
-  photoContainer: {
-    position: 'relative',
-    marginRight: 10,
-  },
-  profilePhoto: {
-    width: s.PROFIL_PIC,
-    height: s.PROFIL_PIC,
-    borderRadius: 8,
-    borderColor: '#ff7d00',
-    borderWidth: 1.5,
-    backgroundColor: '#ccc',
-  },
-  coverContainer: {
-    width: s.STORE_W,
-    height: s.STORE_H,
-    backgroundColor: '#f0f0f0',
-    alignSelf: 'center',
-    borderRadius: 15,
-    overflow: 'hidden',
-  },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  editPhotoIcon: {
-    position: 'absolute',
-    color: '#ffecd1',
-    top: 0,
-    right: 0,
-    borderRadius: 10,
-    padding: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userInfo: {
-    justifyContent: 'center',
-  },
-  storeNameText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#ffecd1',
-  },
-  zoneText: {
-    fontSize: 12,
-    color: '#ff7d00',
-  },
-  menuContainer: {
-    backgroundColor: '#fff',
-    borderColor: '#ff7d00',
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingVertical: 20,
-    elevation: 0,
-    flex: 1,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 15,
-    paddingHorizontal: 5,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ffecd1',
-  },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  menuItemText: {
-    fontSize: 14,
-    marginLeft: 10,
-  },
-  accountDetailsContainer: {
-    flex: 0.86,
-    backgroundColor: '#fff',
-    borderColor: '#ff7d00',
-    borderWidth: 1.5,
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginTop: 100,
-    elevation: 0,
-    shadowColor: '#001524',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 3,
-  },
-  accountDetailTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'left',
-    marginLeft: 30,
-    color: '#001524',
-  },
-  accountDetailItem: {
-    marginBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ffecd1',
-    paddingBottom: 10,
-  },
-  accountDetailLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#001524',
-    marginBottom: 5,
-  },
-  accountDetailValueRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  accountDetailValue: {
-    fontSize: 16,
-    color: '#000',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    zIndex: 10,
-    padding: 5,
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 22,
-  },
-  modalView: {
-    margin: 5,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 20,
-    shadowColor: '#001524',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    textAlign: 'left',
-    flex: 1,
-    marginLeft: 20,
-  },
-  backButtonModal: {
-    padding: 0,
-    alignContent: 'flex-start',
-  },
-  modalLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#001524',
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 5,
-  },
-  modalValue: {
-    fontSize: 16,
-    color: '#000',
-    alignSelf: 'center',
-    marginBottom: 10,
-    marginLeft: 0,
-  },
-  modalInput: {
-    borderWidth: 1.5,
-    borderColor: '#ff7d00',
-    borderRadius: 5,
-    width: 300,
-    padding: 10,
-    marginBottom: 10,
-    fontSize: 16,
-  },
-  passwordHintText: {
-    fontSize: 11,
-    color: '#001524',
-    marginBottom: 15,
-    textAlign: 'left',
-    width: 320,
-  },
-  modalMessage: {
-    fontSize: 15,
-    color: '#ff7d00',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  modalButton: {
-    borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-    marginTop: 10,
-    width: '100%',
-  },
-  modalButtonSave: {
-    backgroundColor: '#ff7d00',
-  },
-  textStyle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  languagesContainer: {
-    flex: 0.46,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginTop: 200,
-    elevation: 0,
-    shadowColor: '#001524',
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 5,
-  },
-  languageTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'left',
-    color: '#001524',
-    marginLeft: 30,
-  },
-  languageItem: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ffecd1',
-  },
-  languageText: {
-    fontSize: 15,
-    color: '#000',
-  },
-  notificationsDetails: {
-    backgroundColor: '#f9f9f9',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ffecd1',
-    marginBottom: 5,
-    marginLeft: 20,
-    marginRight: 20,
-  },
-  notificationsText: {
-    fontSize: 14,
-    color: '#001524',
-    marginBottom: 10,
-  },
-  notificationOptionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 5,
-  },
-  notificationOptionText: {
-    fontSize: 15,
-    color: '#000',
-  },
-  contactOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ff7d00',
-    width: '100%',
-    marginBottom: 10,
-  },
-  contactOptionText: {
-    fontSize: 14,
-    color: '#000',
-  },
-  disabledButtonModal: {
-    opacity: 0.3,
-  },
-  disabledButtonText: {
-    color: '#ffecd1',
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-});
+const getStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      paddingTop: Platform.OS === 'android' ? 30 : 0,
+      padding: 10,
+      backgroundColor: colors.background,
+    },
+    photoContainer: {
+      position: 'relative',
+      marginRight: 10,
+    },
+    profilePhoto: {
+      width: s.PROFIL_PIC,
+      height: s.PROFIL_PIC,
+      borderRadius: 8,
+      borderColor: colors.tint,
+      borderWidth: 1.5,
+      backgroundColor: colors.surface,
+    },
+    coverContainer: {
+      width: s.STORE_W,
+      height: s.STORE_H,
+      backgroundColor: colors.surface,
+      alignSelf: 'center',
+      borderRadius: 15,
+      overflow: 'hidden',
+    },
+    coverImage: {
+      width: '100%',
+      height: '100%',
+      resizeMode: 'cover',
+    },
+    editPhotoIcon: {
+      position: 'absolute',
+      color: colors.accent,
+      top: 0,
+      right: 0,
+      borderRadius: 10,
+      padding: 4,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    userInfo: {
+      justifyContent: 'center',
+    },
+    storeNameText: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+    zoneText: {
+      fontSize: 12,
+      color: colors.tint,
+    },
+    menuContainer: {
+      backgroundColor: colors.surface,
+      borderColor: colors.tint,
+      borderWidth: 1.5,
+      borderRadius: 10,
+      paddingVertical: 20,
+      elevation: 0,
+      flex: 1,
+    },
+    menuItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 15,
+      paddingHorizontal: 5,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.accent,
+    },
+    menuItemLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: 10,
+    },
+    menuItemText: {
+      fontSize: 14,
+      marginLeft: 10,
+      color: colors.text,
+    },
+    accountDetailsContainer: {
+      flex: 0.86,
+      backgroundColor: colors.surface,
+      borderColor: colors.tint,
+      borderWidth: 1.5,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      marginTop: 100,
+      elevation: 0,
+      shadowColor: colors.icon,
+      shadowOffset: { width: 2, height: 2 },
+      shadowOpacity: 1,
+      shadowRadius: 3,
+    },
+    accountDetailTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      textAlign: 'left',
+      marginLeft: 30,
+      color: colors.text,
+    },
+    accountDetailItem: {
+      marginBottom: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.accent,
+      paddingBottom: 10,
+    },
+    accountDetailLabel: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.text,
+      marginBottom: 5,
+    },
+    accountDetailValueRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    accountDetailValue: {
+      fontSize: 16,
+      color: colors.text,
+    },
+    backButton: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      zIndex: 10,
+      padding: 5,
+    },
+    centeredView: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 22,
+    },
+    modalView: {
+      margin: 5,
+      backgroundColor: colors.background,
+      borderRadius: 20,
+      padding: 30,
+      alignItems: 'center',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: 20,
+      shadowColor: colors.icon,
+    },
+    modalTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      textAlign: 'left',
+      flex: 1,
+      marginLeft: 20,
+      color: colors.text,
+    },
+    backButtonModal: {
+      padding: 0,
+      alignContent: 'flex-start',
+    },
+    modalLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: colors.text,
+      alignSelf: 'center',
+      marginTop: 10,
+      marginBottom: 5,
+    },
+    modalValue: {
+      fontSize: 16,
+      color: colors.text,
+      alignSelf: 'center',
+      marginBottom: 10,
+      marginLeft: 0,
+    },
+    modalInput: {
+      borderWidth: 1.5,
+      borderColor: colors.tint,
+      borderRadius: 5,
+      width: 300,
+      padding: 10,
+      marginBottom: 10,
+      fontSize: 16,
+      color: colors.text,
+      backgroundColor: colors.surface,
+    },
+    passwordHintText: {
+      fontSize: 11,
+      color: colors.text,
+      marginBottom: 15,
+      textAlign: 'left',
+      width: 320,
+    },
+    modalMessage: {
+      fontSize: 15,
+      color: colors.tint,
+      marginBottom: 15,
+      textAlign: 'center',
+    },
+    modalButton: {
+      borderRadius: 10,
+      padding: 10,
+      elevation: 2,
+      marginTop: 10,
+      width: '100%',
+    },
+    modalButtonSave: {
+      backgroundColor: colors.tint,
+    },
+    textStyle: {
+      color: colors.textNormal,
+      fontSize: 16,
+      fontWeight: 'bold',
+      textAlign: 'center',
+    },
+    languagesContainer: {
+      flex: 0.46,
+      backgroundColor: colors.surface,
+      borderRadius: 10,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      marginTop: 200,
+      elevation: 0,
+      shadowColor: colors.icon,
+      shadowOffset: { width: 2, height: 2 },
+      shadowOpacity: 1,
+      shadowRadius: 5,
+    },
+    languageTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 20,
+      textAlign: 'left',
+      color: colors.text,
+      marginLeft: 30,
+    },
+    languageItem: {
+      paddingVertical: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.accent,
+    },
+    languageText: {
+      fontSize: 15,
+      color: colors.text,
+    },
+    notificationsDetails: {
+      backgroundColor: colors.background,
+      padding: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.accent,
+      marginBottom: 5,
+      marginLeft: 20,
+      marginRight: 20,
+    },
+    notificationsText: {
+      fontSize: 14,
+      color: colors.text,
+      marginBottom: 10,
+    },
+    notificationOptionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 5,
+    },
+    notificationOptionText: {
+      fontSize: 15,
+      color: colors.text,
+    },
+    contactOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.tint,
+      width: '100%',
+      marginBottom: 10,
+    },
+    contactOptionText: {
+      fontSize: 14,
+      color: colors.text,
+    },
+    disabledButtonModal: {
+      opacity: 0.3,
+    },
+    disabledButtonText: {
+      color: colors.accent,
+    },
+    profileHeader: {
+      flexDirection: 'row',
+      marginBottom: 20,
+    },
+  });
+};
 
-export default ProfileSELLScreen;
+export default ProfileScreen;

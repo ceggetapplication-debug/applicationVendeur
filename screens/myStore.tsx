@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, FlatList, Platform, ActivityIndicator } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useAppTranslation } from '@/app/(main)/translations/data/translationCentralization';
-import { getHomeGroupes } from '@/app/(main)/calculation-logic/homeDatat';
+import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, FlatList, Platform, ActivityIndicator, useColorScheme } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, router, useLocalSearchParams } from 'expo-router';
+import { Colors } from '../appSellerColors';
+import { useAppTranslation } from '../translations/data/translationCentralization';
+import { getHomeGroupes } from '../logic/homeDatat';
 import ProductModal from '../modals/productModal';
-import { useRouter } from 'expo-router';
-import { router, useLocalSearchParams } from 'expo-router';
-import { DeepLinkBackend } from '../backends/invitDeepLnkMail';
-import { databases, account, config, Query, Models, ID } from '@/app/(main)/calculation-logic/appwriteConfig';
-import { ProductType as RawProductType, Group } from '@/app/(main)/modals-others/modalMagasinInfos';
+import { databases, account, config, Query, Models, ID } from '../logic/appwriteConfig';
+import { ProductType as RawProductType, Group, StoreType as StoreTypeData } from '../modals/modalMagasinInfos';
+import { deleteFromR2, deleteProductPhoto, setProductPhoto, buildProductPhoto, uploadToR2, r2Config } from '../logic/imagesLogic';
 
 enum StoreType {
   fastFood = 'fastFood',
@@ -37,6 +37,7 @@ interface Product {
   price: number;
   imageUrl: string;
   category: string;
+  categories: string;
   productType?: string;
   quantityValue?: number;
   quantityUnit?: string;
@@ -61,12 +62,16 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onEdit, onDelete, t }: ProductCardProps) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const productStyles = getProductStyles(theme);
+
   return (
     <View style={productStyles.card}>
       {product.imageUrl ? (
         <Image source={{ uri: product.imageUrl }} style={productStyles.image} />
       ) : (
-        <View style={[productStyles.image, { backgroundColor: '#f0f0f0' }]} />
+        <View style={[productStyles.image, { backgroundColor: Colors[theme].surface }]} />
       )}
       <Text style={productStyles.name} numberOfLines={1}>{product.name}</Text>
       <Text style={productStyles.price}>{product.price.toFixed(2)} DZD</Text>
@@ -111,6 +116,9 @@ const ProductTypeSection = ({
   onAddProduct,
   t,
 }: ProductTypeSectionProps) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const productTypeSectionStyles = getProductTypeSectionStyles(theme);
   const sectionTitle = productType ? productType.name : category.name;
   return (
     <View style={productTypeSectionStyles.container}>
@@ -155,11 +163,16 @@ interface ProductTypeRowProps {
   onAdd: () => void;
   t: (key: string) => string;
 }
-const CategoryButton = ({ name }: { name: string }) => (
-  <TouchableOpacity style={styles.categoryButton}>
-    <Text style={styles.categoryButtonText}>{name}</Text>
-  </TouchableOpacity>
-);
+const CategoryButton = ({ name }: { name: string }) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const styles = getStyles(theme);
+  return (
+    <TouchableOpacity style={styles.categoryButton}>
+      <Text style={styles.categoryButtonText}>{name}</Text>
+    </TouchableOpacity>
+  );
+};
 const ProductTypeRow = ({ item, category, groupedProducts, onEdit, onDelete, onAdd, t }: ProductTypeRowProps) => (
   <ProductTypeSection
     key={item.id}
@@ -175,6 +188,10 @@ const ProductTypeRow = ({ item, category, groupedProducts, onEdit, onDelete, onA
 
 export default function MyStoreScreen() {
   const { t } = useAppTranslation();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const colors = Colors[theme];
+  const styles = getStyles(theme);
   const currentStoreType = StoreType.boucherieViandeRouge;
 
   const { categories, productTypes } = useMemo(() => {
@@ -183,7 +200,7 @@ export default function MyStoreScreen() {
     let storeProductTypes: ProductType[] = [];
 
     homeGroupes.forEach((groupe: Group) => {
-      const typeMatch = groupe.typesDeStore.find((type) => type.id === currentStoreType);
+      const typeMatch = groupe.typesDeStore.find((type: StoreTypeData) => type.id === currentStoreType);
 
       if (typeMatch && typeMatch.stores?.[0]) {
         const AUTO_CATS = ['_cat_promotion', '_topVentes'];
@@ -212,7 +229,6 @@ export default function MyStoreScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [productToEdit, setProductToEdit] = useState<Product | null>(null);
-  const params = useLocalSearchParams();
   const router = useRouter();
   const productTypeIds = useMemo(() => productTypes.map((pt: ProductType) => pt.id).join(','), [productTypes]);
   const categoryIds = useMemo(() => categories.map((c: Category) => c.id).join(','), [categories]);
@@ -269,32 +285,6 @@ export default function MyStoreScreen() {
   }, [categories, selectedCategoryId]);
 
   useEffect(() => {
-    const handleDeepLink = async () => {
-      const { inviteId } = params;
-      if (inviteId) {
-        setIsLoading(true);
-        try {
-          const result = await DeepLinkBackend.processInvite({
-            inviteId: inviteId as string
-          }) as { success: boolean; permissions?: { mystore: boolean; mynews: boolean; commands: boolean; recette: boolean } };
-          if (result.success && result.permissions) {
-            const p = result.permissions;
-            if (p.mystore) router.push('/appSeller/screens/myStore');
-            else if (p.mynews) router.push('/appSeller/screens/myNews');
-            else if (p.commands) router.push('/appSeller/screens/commands');
-            else if (p.recette) router.push('/appSeller/screens/recette');
-          }
-        } catch (e) {
-          Alert.alert(t('general.error'), t('auth/invalid-link') || "Lien invalide");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    handleDeepLink();
-  }, [params]);
-
-  useEffect(() => {
     const initStore = async () => {
       try {
         const user = await account.get();
@@ -320,19 +310,27 @@ export default function MyStoreScreen() {
     try {
       setIsLoading(true);
       const resp = await databases.listDocuments(config.databaseId, config.productsCollectionId, [Query.equal('storeId', sid)]);
-      const mapped: Product[] = resp.documents.map((doc: Models.Document) => ({
-        id: doc.$id,
-        name: doc.name || doc.nom,
-        brand: doc.brand || doc.marque || '',
-        descriptionFr: doc.descriptionFr || '',
-        descriptionKab: doc.descriptionKab || '',
-        price: doc.price || doc.prix || 0,
-        imageUrl: doc.imageUrl || '',
-        category: doc.category || '',
-        productType: doc.productType || '',
-        quantityValue: doc.quantityValue,
-        quantityUnit: doc.quantityUnit,
-      }));
+      const mapped: Product[] = resp.documents.map((doc: Models.Document) => {
+        const r2Path = `${r2Config.folders.PRODUCTS}${doc.$id}.jpg`;
+        const r2DirectUrl = `${r2Config.publicUrl}/${r2Path}`;
+        const photoR2 = buildProductPhoto(doc.$id);
+        const finalImageUrl = doc.imageUrl || photoR2.detail || photoR2.apercu || r2DirectUrl;
+
+        return {
+          id: doc.$id,
+          name: doc.name || doc.nom,
+          brand: doc.brand || doc.marque || '',
+          descriptionFr: doc.descriptionFr || '',
+          descriptionKab: doc.descriptionKab || '',
+          price: doc.price || doc.prix || 0,
+          imageUrl: finalImageUrl,
+          category: doc.category || doc.categories || '',
+          categories: doc.categories || doc.category || '',
+          productType: doc.productType || '',
+          quantityValue: doc.quantityValue,
+          quantityUnit: doc.quantityUnit,
+        };
+      });
       setProducts(mapped);
     } catch (error) {
     } finally {
@@ -342,12 +340,23 @@ export default function MyStoreScreen() {
   const handleSaveProduct = async (data: Partial<Product>, imageUri: string | null) => {
     if (!storeId) return;
     try {
+      let docId = productToEdit?.id;
       const payload = { ...data, storeId, imageUrl: imageUri || data.imageUrl };
+
       if (productToEdit) {
         await databases.updateDocument(config.databaseId, config.productsCollectionId, productToEdit.id, payload);
       } else {
-        await databases.createDocument(config.databaseId, config.productsCollectionId, ID.unique(), payload);
+        const newDoc = await databases.createDocument(config.databaseId, config.productsCollectionId, ID.unique(), payload);
+        docId = newDoc.$id;
       }
+      if (imageUri && docId) {
+        const r2Path = `${r2Config.folders.PRODUCTS}${docId}.jpg`;
+        const fileToUpload = { uri: imageUri, name: `${docId}.jpg`, type: 'image/jpeg' };
+
+        await uploadToR2(r2Path, fileToUpload);
+        await setProductPhoto(docId, fileToUpload);
+      }
+
       setIsModalVisible(false);
       fetchProducts(storeId);
     } catch (error) {
@@ -356,6 +365,10 @@ export default function MyStoreScreen() {
   };
   const handleDeleteProduct = async (id: string) => {
     try {
+      const r2Path = `${r2Config.folders.PRODUCTS}${id}.jpg`;
+      await deleteFromR2(r2Path);
+      await deleteProductPhoto(id);
+
       await databases.deleteDocument(config.databaseId, config.productsCollectionId, id);
       setProducts((prev: Product[]) => prev.filter((p: Product) => p.id !== id));
     } catch (error) {
@@ -372,7 +385,7 @@ export default function MyStoreScreen() {
   if (isLoading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#15616d" />
+        <ActivityIndicator size="large" color={colors.green} />
       </View>
     );
   }
@@ -380,11 +393,11 @@ export default function MyStoreScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={28} color="#15616d" />
+          <Ionicons name="arrow-back" size={28} color={colors.green} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('tab.myStore')}</Text>
         <TouchableOpacity onPress={() => { setProductToEdit(null); setIsModalVisible(true); }}>
-          <Ionicons name="add-circle-outline" size={30} color="#ff7d00" />
+          <Ionicons name="add-circle-outline" size={30} color={colors.tint} />
         </TouchableOpacity>
       </View>
       <View style={styles.categorysScroll}>
@@ -419,141 +432,148 @@ export default function MyStoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop:
-      Platform.OS === 'android' ? 30 : 0,
-    padding: 10,
-    backgroundColor: '#f8f8f8',
-  },
-  categorysScroll: {
-    maxHeight: 50,
-    marginBottom: 10,
-  },
-  categoryButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    backgroundColor: '#e0e0e0',
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedCategoryButton: {
-    backgroundColor: '#78290f',
-    opacity: 0.5,
-  },
-  categoryButtonText: {
-    color: '#333',
-  },
-  selectedCategoryButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  productsContainer: {
-    flex: 1,
-    marginTop: 10,
-  },
-  emptyListContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 300,
-    height: 200,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    marginTop: 40,
-    marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-});
+const getStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    loader: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      paddingTop: Platform.OS === 'android' ? 30 : 0,
+      padding: 10,
+      backgroundColor: colors.background,
+    },
+    categorysScroll: {
+      maxHeight: 50,
+      marginBottom: 10,
+    },
+    categoryButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 15,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      marginRight: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    selectedCategoryButton: {
+      backgroundColor: colors.tint,
+    },
+    categoryButtonText: {
+      color: colors.text,
+    },
+    selectedCategoryButtonText: {
+      color: colors.textNormal,
+      fontWeight: 'bold',
+    },
+    productsContainer: {
+      flex: 1,
+      marginTop: 40,
+    },
+    emptyListContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      minWidth: 300,
+      height: 200,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 10,
+      marginTop: 40,
+      marginBottom: 20,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+  });
+};
 
-const productStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fafafa',
-    borderRadius: 8,
-    padding: 10,
-    marginRight: 10,
-    width: 160,
-    height: 220,
-    elevation: 3,
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  image: {
-    width: '100%',
-    height: 100,
-    borderRadius: 6,
-    marginBottom: 8,
-    resizeMode: 'cover',
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#333',
-  },
-  price: {
-    fontSize: 14,
-    color: '#003',
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  menuButtonContainer: {
-    alignSelf: 'flex-end',
-    marginTop: 'auto',
-  },
-  menuButton: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#555',
-    paddingHorizontal: 5,
-  },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-  },
-});
+const getProductStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 10,
+      marginRight: 10,
+      width: 160,
+      height: 220,
+      elevation: 3,
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    image: {
+      width: '100%',
+      height: 100,
+      borderRadius: 6,
+      marginBottom: 8,
+      resizeMode: 'cover',
+    },
+    name: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      color: colors.text,
+    },
+    price: {
+      fontSize: 14,
+      color: colors.green,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
+    menuButtonContainer: {
+      alignSelf: 'flex-end',
+      marginTop: 'auto',
+    },
+    menuButton: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.icon,
+      paddingHorizontal: 5,
+    },
+  });
+};
 
-const productTypeSectionStyles = StyleSheet.create({
-  container: {
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-    paddingLeft: 5,
-  },
-  addProductButtonCard: {
-    width: 160,
-    height: 220,
-    backgroundColor: '#e6f7ff',
-    borderRadius: 8,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#15616d',
-    borderStyle: 'dashed',
-    padding: 10,
-  },
-  addProductButtonText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#003',
-    textAlign: 'center',
-  },
-});
+const getProductTypeSectionStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    container: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      color: colors.text,
+      paddingLeft: 5,
+    },
+    addProductButtonCard: {
+      width: 160,
+      height: 220,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      marginRight: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.green,
+      borderStyle: 'dashed',
+      padding: 10,
+    },
+    addProductButtonText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.green,
+      textAlign: 'center',
+    },
+  });
+}

@@ -1,627 +1,579 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Modal, Pressable, Linking, } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import * as ImagePicker from 'expo-image-picker';
-import { router, useLocalSearchParams } from 'expo-router';
-import { DeepLinkBackend } from '../backends/invitDeepLnkMail';
-import { sizes, uploadToR2, sharePhoto, getStoreSharedPhotos, deleteSharedPhoto } from '../../app/(main)/calculation-logic/imagesLogic';
-import { useAppTranslation } from '../../app/(main)/translations/data/translationCentralization';
-import { r2Config, databases, config, Query, account } from '../../app/(main)/calculation-logic/appwriteConfig';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, FlatList, Platform, ActivityIndicator, useColorScheme } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter, router, useLocalSearchParams } from 'expo-router';
+import { Colors } from '../appSellerColors';
+import { useAppTranslation } from '../translations/data/translationCentralization';
+import { getHomeGroupes } from '../logic/homeDatat';
+import ProductModal from '../modals/productModal';
+import { databases, account, config, Query, Models, ID } from '../logic/appwriteConfig';
+import { ProductType as RawProductType, Group, StoreType as StoreTypeData } from '../modals/modalMagasinInfos';
+import { setProductPhoto, deleteFromR2, deleteProductPhoto, buildProductPhoto, uploadToR2, r2Config } from '../logic/imagesLogic';
 
-const s = sizes();
-
-interface Photo {
-  id: string;
-  uri: string;
-  likes: number;
+enum StoreType {
+  fastFood = 'fastFood',
+  restaurant = 'restaurant',
+  superette = 'superette',
+  epicerie = 'epicerie',
+  alimGle = 'alimGle',
+  fruitsEtLegumes = 'fruitsEtLegumes',
+  boucherieViandeRouge = 'boucherieViandeRouge',
+  boucherieViandeBlanche = 'boucherieViandeBlanche',
+  poissonerie = 'poissonerie',
+  pizzeriaPatisserie = 'pizzeriaPatisserie',
+  gateauxTraditionnels = 'gateauxTraditionnels',
+  boulangerie = 'boulangerie',
+  cremerie = 'cremerie',
+  produitsCosmetiques = 'produitsCosmetiques',
+  bureauTabac = 'bureauTabac',
 }
 
-export default function MyNewsScreen() {
-  const { t } = useAppTranslation();
-  const params = useLocalSearchParams();
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isPickerModalVisible, setPickerModalVisible] = useState(false);
-  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
-  const [fullScreenPhoto, setFullScreenPhoto] = useState<Photo | null>(null);
-  const [isMenuModalVisible, setIsMenuModalVisible] = useState(false);
-  const [currentMenuPhoto, setCurrentMenuPhoto] = useState<Photo | null>(null);
-  const [followersCount, setFollowersCount] = useState<number>(0);
-  const [storeId, setStoreId] = useState<string>('');
-  const [merchantId, setMerchantId] = useState<string>('');
-  const [likesCount, setLikesCount] = useState<number>(0);
+interface Product {
+  id: string;
+  name: string;
+  brand: string;
+  descriptionFr: string;
+  descriptionKab: string;
+  price: number;
+  imageUrl: string;
+  category: string;
+  categories: string;
+  productType?: string;
+  quantityValue?: number;
+  quantityUnit?: string;
+}
 
+interface Category {
+  id: string;
+  name: string;
+  productTypes?: RawProductType[];
+}
 
-  const fetchNewsData = useCallback(async () => {
-    try {
-      if (!storeId) return;
+interface ProductType {
+  id: string;
+  name: string;
+}
 
-      const storeData = await databases.getDocument(
-        config.databaseId,
-        config.storesCollectionId,
-        storeId
-      );
-      setFollowersCount(storeData.followers || 0);
-      setLikesCount(storeData.likes || 0);
+interface ProductCardProps {
+  product: Product;
+  onEdit: (productId: string) => void;
+  onDelete: (productId: string) => void;
+  t: (key: string) => string;
+}
 
-      const loadedFromDB = await getStoreSharedPhotos(storeId);
-      const mappedPhotos: Photo[] = loadedFromDB.map((p) => ({
-        id: p.$id,
-        uri: p.vignette,
-        likes: 0
-      }));
+const ProductCard = ({ product, onEdit, onDelete, t }: ProductCardProps) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const productStyles = getProductStyles(theme);
 
-      setPhotos(mappedPhotos);
-    } catch (error) {
-      console.error(error);
-    }
-  }, [storeId]);
-
-  useEffect(() => {
-    const initApp = async () => {
-      try {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') Alert.alert(t('general.error'), t('photoPermissionDenied'));
-
-        const user = await account.get();
-        setMerchantId(user.$id);
-
-        const res = await databases.listDocuments(config.databaseId, config.storesCollectionId, [
-          Query.equal('userId', user.$id)
-        ]);
-
-        if (res.documents.length > 0) {
-          setStoreId(res.documents[0].$id);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-    initApp();
-  }, [t, fetchNewsData]);
-
-  useEffect(() => {
-    const handleCaptureInvite = async () => {
-      const { inviteId } = params;
-      if (inviteId) {
-        setIsLoading(true);
-        try {
-          const result = await DeepLinkBackend.processInvite({
-            inviteId: inviteId as string
-          }) as { success: boolean; permissions?: { mystore: boolean; mynews: boolean; commands: boolean; recette: boolean } };
-          if (result.success && result.permissions) {
-            const p = result.permissions;
-            if (p.mystore) router.push('/appSeller/screens/myStore');
-            else if (p.mynews) router.push('/appSeller/screens/myNews');
-            else if (p.commands) router.push('/appSeller/screens/commands');
-            else if (p.recette) router.push('/appSeller/screens/recette');
+  return (
+    <View style={productStyles.card}>
+      {product.imageUrl ? (
+        <Image source={{ uri: product.imageUrl }} style={productStyles.image} />
+      ) : (
+        <View style={[productStyles.image, { backgroundColor: Colors[theme].surface }]} />
+      )}
+      <Text style={productStyles.name} numberOfLines={1}>{product.name}</Text>
+      <Text style={productStyles.price}>{product.price.toFixed(2)} DZD</Text>
+      <View style={productStyles.menuButtonContainer}>
+        <TouchableOpacity
+          onPress={() =>
+            Alert.alert(
+              t('prodAction'),
+              product.name,
+              [
+                { text: t('modify'), onPress: () => onEdit(product.id) },
+                { text: t('myNewsScreen.delete'), onPress: () => onDelete(product.id), style: 'destructive' },
+                { text: t('general.cancel'), style: 'cancel' },
+              ]
+            )
           }
-        } catch (e) {
-          Alert.alert(t('general.error'), t('auth/invalid-link') || "Lien invalide");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    handleCaptureInvite();
-  }, [params]);
+        >
+          <Text style={productStyles.menuButton}>...</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
-  const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
+interface ProductTypeSectionProps {
+  key?: string | number;
+  category: Category;
+  productType?: ProductType | RawProductType;
+  products: Product[];
+  onEditProduct: (productId: string) => void;
+  onDeleteProduct: (productId: string) => void | Promise<void>;
+  onAddProduct: (name?: string) => void;
+  t: (key: string) => string;
+}
+
+const ProductTypeSection = ({
+  category,
+  productType,
+  products,
+  onEditProduct,
+  onDeleteProduct,
+  onAddProduct,
+  t,
+}: ProductTypeSectionProps) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const productTypeSectionStyles = getProductTypeSectionStyles(theme);
+  const sectionTitle = productType ? productType.name : category.name;
+  return (
+    <View style={productTypeSectionStyles.container}>
+      <Text style={productTypeSectionStyles.title}>{sectionTitle}</Text>
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={[...products, { id: 'add_button_placeholder', name: '' } as unknown as Product]}
+        keyExtractor={(item: Product) => item.id}
+        renderItem={({ item }: { item: Product }) => {
+          if (item.id === 'add_button_placeholder') {
+            return (
+              <TouchableOpacity
+                style={productTypeSectionStyles.addProductButtonCard}
+                onPress={() => onAddProduct(sectionTitle)}
+              >
+                <Text style={productTypeSectionStyles.addProductButtonText}>{t('addProduct')}</Text>
+                <Text style={productTypeSectionStyles.addProductButtonText}>({sectionTitle})</Text>
+              </TouchableOpacity>
+            );
+          }
+          return (
+            <ProductCard
+              product={item as Product}
+              onEdit={onEditProduct}
+              onDelete={onDeleteProduct}
+              t={t}
+            />
+          );
+        }}
+      />
+    </View>
+  );
+};
+
+interface ProductTypeRowProps {
+  item: ProductType;
+  category: Category;
+  groupedProducts: Record<string, Product[]>;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  onAdd: () => void;
+  t: (key: string) => string;
+}
+const CategoryButton = ({ name }: { name: string }) => {
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const styles = getStyles(theme);
+  return (
+    <TouchableOpacity style={styles.categoryButton}>
+      <Text style={styles.categoryButtonText}>{name}</Text>
+    </TouchableOpacity>
+  );
+};
+const ProductTypeRow = ({ item, category, groupedProducts, onEdit, onDelete, onAdd, t }: ProductTypeRowProps) => (
+  <ProductTypeSection
+    key={item.id}
+    category={category}
+    productType={item}
+    products={groupedProducts[item.id] || []}
+    onEditProduct={onEdit}
+    onDeleteProduct={onDelete}
+    onAddProduct={onAdd}
+    t={t}
+  />
+);
+
+export default function MyStoreScreen() {
+  const { t } = useAppTranslation();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const colors = Colors[theme];
+  const styles = getStyles(theme);
+  const currentStoreType = StoreType.boucherieViandeRouge;
+
+  const { categories, productTypes } = useMemo(() => {
+    const homeGroupes = getHomeGroupes(t);
+    let storeCategories: Category[] = [];
+    let storeProductTypes: ProductType[] = [];
+
+    homeGroupes.forEach((groupe: Group) => {
+      const typeMatch = groupe.typesDeStore.find((type: StoreTypeData) => type.id === currentStoreType);
+
+      if (typeMatch && typeMatch.stores?.[0]) {
+        const AUTO_CATS = ['_cat_promotion', '_topVentes'];
+        const rawCats: Category[] = typeMatch.stores[0].categories || [];
+
+        storeCategories = rawCats
+          .filter(c => !AUTO_CATS.some(suffix => c.id.endsWith(suffix)))
+          .map(c => ({ id: c.id, name: c.name }));
+
+        storeProductTypes = rawCats.flatMap((c: Category) =>
+          (c.productTypes || []).map((pt: RawProductType) => ({
+            id: pt.id,
+            name: pt.name,
+            category: c.id,
+          }))
+        );
+      }
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      setSelectedImageUri(result.assets[0].uri);
-      setPickerModalVisible(true);
+    return { categories: storeCategories, productTypes: storeProductTypes };
+  }, [t, currentStoreType]);
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
+  const router = useRouter();
+  const productTypeIds = useMemo(() => productTypes.map((pt: ProductType) => pt.id).join(','), [productTypes]);
+  const categoryIds = useMemo(() => categories.map((c: Category) => c.id).join(','), [categories]);
+  const groupedProducts = useMemo(() => {
+    return products.reduce((acc: Record<string, Product[]>, p: Product) => {
+      const key = p.productType || p.category;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(p);
+      return acc;
+    }, {} as Record<string, Product[]>);
+  }, [products]);
+  const activeCategory = useMemo(() => {
+    return categories.find((c: Category) => c.id === selectedCategoryId);
+  }, [categories, selectedCategoryId]);
+  const renderContent = () => {
+    if (!activeCategory) return null;
+    if (activeCategory.productTypes && activeCategory.productTypes.length > 0) {
+      return activeCategory.productTypes.map((pt: RawProductType) => (
+        <ProductTypeSection
+          key={pt.id}
+          category={activeCategory}
+          productType={{
+            id: activeCategory.id,
+            name: activeCategory.name,
+          }}
+          products={groupedProducts[pt.id] || []}
+          onEditProduct={openEdit}
+          onDeleteProduct={handleDeleteProduct}
+          onAddProduct={() => { setProductToEdit(null); setIsModalVisible(true); }}
+          t={t}
+        />
+      ));
+    }
+    return (
+      <ProductTypeSection
+        category={activeCategory}
+        productType={{
+          id: activeCategory.id,
+          name: activeCategory.name
+        }}
+        products={groupedProducts[activeCategory.id] || []}
+        onEditProduct={openEdit}
+        onDeleteProduct={handleDeleteProduct}
+        onAddProduct={() => { setProductToEdit(null); setIsModalVisible(true); }}
+        t={t}
+      />
+    );
+  };
+
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategoryId) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories, selectedCategoryId]);
+
+  useEffect(() => {
+    const initStore = async () => {
+      try {
+        const user = await account.get();
+        const response = await databases.listDocuments(
+          config.databaseId,
+          config.storesCollectionId,
+          [Query.equal('userId', user.$id)]
+        );
+        if (response.documents.length > 0) {
+          const sid = response.documents[0].$id;
+          setStoreId(sid);
+          fetchProducts(sid);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (error) {
+        setIsLoading(false);
+      }
+    };
+    initStore();
+  }, []);
+  const fetchProducts = async (sid: string) => {
+    try {
+      setIsLoading(true);
+      const resp = await databases.listDocuments(config.databaseId, config.productsCollectionId, [Query.equal('storeId', sid)]);
+      const mapped: Product[] = resp.documents.map((doc: Models.Document) => {
+        const r2Path = `${r2Config.folders.PRODUCTS}${doc.$id}.jpg`;
+        const r2DirectUrl = `${r2Config.publicUrl}/${r2Path}`;
+        const photoR2 = buildProductPhoto(doc.$id);
+        const finalImageUrl = doc.imageUrl || photoR2.detail || photoR2.apercu || r2DirectUrl;
+
+        return {
+          id: doc.$id,
+          name: doc.name || doc.nom,
+          brand: doc.brand || doc.marque || '',
+          descriptionFr: doc.descriptionFr || '',
+          descriptionKab: doc.descriptionKab || '',
+          price: doc.price || doc.prix || 0,
+          imageUrl: finalImageUrl,
+          category: doc.category || doc.categories || '',
+          categories: doc.categories || doc.category || '',
+          productType: doc.productType || '',
+          quantityValue: doc.quantityValue,
+          quantityUnit: doc.quantityUnit,
+        };
+      });
+      setProducts(mapped);
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const closeImportModal = () => {
-    setPickerModalVisible(false);
-    setSelectedImageUri(null);
-  };
-
-  const handleProcessAndAddPhoto = async () => {
-    if (!selectedImageUri) return;
-
+  const handleSaveProduct = async (data: Partial<Product>, imageUri: string | null) => {
+    if (!storeId) return;
     try {
-      const fileName = `news_${Date.now()}.jpg`;
-      const newPhoto = await sharePhoto(
-        { uri: selectedImageUri, name: fileName, type: 'image/jpeg' },
+      let docId = productToEdit?.id;
+      const payload = { ...data, storeId, imageUrl: imageUri || data.imageUrl };
 
-        merchantId,
-        storeId
-      );
+      if (productToEdit) {
+        await databases.updateDocument(config.databaseId, config.productsCollectionId, productToEdit.id, payload);
+      } else {
+        const newDoc = await databases.createDocument(config.databaseId, config.productsCollectionId, ID.unique(), payload);
+        docId = newDoc.$id;
+      }
+      if (imageUri && docId) {
+        const r2Path = `${r2Config.folders.PRODUCTS}${docId}.jpg`;
+        const fileToUpload = { uri: imageUri, name: `${docId}.jpg`, type: 'image/jpeg' };
 
-      setPhotos((prev: Photo[]) => [{ id: newPhoto.$id, uri: newPhoto.vignette, likes: 0 }, ...prev]);
-      closeImportModal();
-      Alert.alert(t('myNewsScreen.photoImported'));
+        await uploadToR2(r2Path, fileToUpload);
+        await setProductPhoto(docId, fileToUpload);
+      }
 
+      setIsModalVisible(false);
+      fetchProducts(storeId);
     } catch (error) {
-      console.error("Erreur R2 :", error);
+      Alert.alert(t('general.error'), t('saveDataFailed'));
+    }
+  };
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      const r2Path = `${r2Config.folders.PRODUCTS}${id}.jpg`;
+      await deleteFromR2(r2Path);
+      await deleteProductPhoto(id);
+
+      await databases.deleteDocument(config.databaseId, config.productsCollectionId, id);
+      setProducts((prev: Product[]) => prev.filter((p: Product) => p.id !== id));
+    } catch (error) {
       Alert.alert(t('general.error'), t('genericError'));
     }
   };
-
-  const openFullScreenPhoto = (photo: Photo) => {
-    setFullScreenPhoto(photo);
+  const openEdit = (id: string) => {
+    const p = products.find((prod: Product) => prod.id === id);
+    if (p) {
+      setProductToEdit(p);
+      setIsModalVisible(true);
+    }
   };
-
-  const closeFullScreenPhoto = () => {
-    setFullScreenPhoto(null);
-    setIsMenuModalVisible(false);
-    setCurrentMenuPhoto(null);
-  };
-
-  const handleLike = async (photoId: string) => {
-    setPhotos((prev: Photo[]) =>
-      prev.map((photo: Photo) =>
-        photo.id === photoId ? { ...photo, likes: (photo.likes || 0) + 1 } : photo
-      )
+  if (isLoading) {
+    return (
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={colors.green} />
+      </View>
     );
-
-    try {
-      const photoDoc = await databases.getDocument(config.databaseId, 'col_shared', photoId);
-      await databases.updateDocument(config.databaseId, 'col_shared', photoId, {
-        likes: (photoDoc.likes || 0) + 1
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-
-  const openPhotoMenu = (photo: Photo) => {
-    setCurrentMenuPhoto(photo);
-    setIsMenuModalVisible(true);
-  };
-  const closeMenu = () => {
-    setIsMenuModalVisible(false);
-    setCurrentMenuPhoto(null);
-  };
-
-  const handleDeletePhoto = useCallback(() => {
-    if (currentMenuPhoto) {
-      Alert.alert(
-        t('myNewsScreen.deletePhoto'),
-        t('myNewsScreen.deleteConfirm'),
-        [
-          { text: t('general.cancel'), style: 'cancel' },
-          {
-            text: t('myNewsScreen.delete'),
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await deleteSharedPhoto(currentMenuPhoto.id, currentMenuPhoto.id);
-
-                setPhotos((prev: Photo[]) => prev.filter((p: Photo) => p.id !== currentMenuPhoto.id));
-
-                closeMenu();
-              } catch (error) {
-                console.error(error);
-                Alert.alert(t('general.error'), t('myNewsScreen.deleteError'));
-              }
-            },
-          },
-        ],
-        { cancelable: true }
-      );
-    }
-  }, [currentMenuPhoto, t, closeMenu]);
-
-
+  }
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        <View style={styles.statsContainer}>
-          <Text style={styles.sectionTitle}>{t('myNewsScreen.statistics')}</Text>
-          <Text style={styles.followersCountText}>
-            {t('myNewsScreen.totalFollowers')} {followersCount}
-          </Text>
-          <Text style={styles.followersCountText}>
-            {t('myNewsScreen.totalLikes')} {likesCount}
-          </Text>
-        </View>
-
-        <View style={styles.photosGridContainer}>
-          <Text style={styles.sectionTitle}>{t('myNewsScreen.myPhotos')}</Text>
-          {photos.length === 0 ? (
-            <View style={styles.noPhotosContainer}>
-              <Text style={styles.noPhotosText}>{t('myNewsScreen.noPhotosYet')}</Text>
-            </View>
-          ) : (
-            photos.map((photo: Photo) => (
-              <TouchableOpacity
-                key={photo.id}
-                style={styles.photoContainerPic}
-                onPress={() => openFullScreenPhoto(photo)}
-              >
-                <Image source={{ uri: photo.uri }} style={styles.photoThumbnail} />
-                <View style={styles.photoOverlay}>
-                  <Ionicons name="heart" size={20} color="#d30202" />
-                  <Text style={[styles.photoLikes, { fontSize: 15 }]}>{photo.likes}</Text>
-                </View>
-              </TouchableOpacity>
-            ))
-          )}
-
-          <TouchableOpacity style={styles.addPhotoButton} onPress={pickImage}>
-            <Ionicons name="add-circle-outline" size={35} color="#78290f" />
-            <Text style={styles.addPhotoText}>{t('myNewsScreen.addPhoto')}</Text>
-          </TouchableOpacity>
-        </View>
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={isPickerModalVisible}
-          onRequestClose={closeImportModal}
-        >
-          <View style={styles.fullScreenOverlay}>
-            {selectedImageUri && (
-              <>
-                <Image
-                  source={{ uri: selectedImageUri }}
-                  style={styles.fullScreenImage}
-                  resizeMode="contain"
-                />
-                <View style={styles.fullScreenHeader}>
-                  <TouchableOpacity
-                    onPress={closeImportModal}
-                    style={styles.fullScreenCloseButton}
-                  >
-                    <Ionicons name="close" size={35} color="#ffecd1" />
-                  </TouchableOpacity>
-                </View>
-                <View style={styles.shareButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.shareButton}
-                    onPress={handleProcessAndAddPhoto}
-                  >
-                    <Ionicons name="share-outline" size={24} color="#fff" />
-                    <Text style={styles.shareButtonText}>{t('myNewsScreen.addPhotoToMyNews')}</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </Modal>
-
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={!!fullScreenPhoto}
-          onRequestClose={closeFullScreenPhoto}
-        >
-          <View style={styles.fullScreenOverlay}>
-            {fullScreenPhoto && (
-              <>
-                <Image
-                  source={{ uri: fullScreenPhoto.uri }}
-                  style={styles.fullScreenImage}
-                  resizeMode="contain"
-                />
-                <View style={styles.fullScreenHeader}>
-                  <TouchableOpacity
-                    onPress={closeFullScreenPhoto}
-                    style={styles.fullScreenCloseButton}
-                  >
-                    <Ionicons name="close" size={35} color="#ffecd1" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => openPhotoMenu(fullScreenPhoto)}
-                    style={styles.fullScreenMenuButton}
-                  >
-                    <Ionicons name="ellipsis-vertical" size={30} color="#ffecd1" />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.photoOverlay}>
-                  <TouchableOpacity
-                    onPress={() => handleLike(fullScreenPhoto.id)}
-                    style={styles.fullScreenLikeButton}
-                  >
-                    <Ionicons name="heart" size={28} color="#d30202" />
-                    <Text style={[styles.photoLikes, { fontSize: 24 }]}>
-                      {fullScreenPhoto.likes}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Modal
-                  animationType="slide"
-                  transparent={true}
-                  visible={isMenuModalVisible && !!currentMenuPhoto}
-                  onRequestClose={() => setIsMenuModalVisible(false)}
-                >
-                  <TouchableOpacity
-                    style={styles.menuModalBackground}
-                    activeOpacity={1}
-                    onPressOut={() => setIsMenuModalVisible(false)}
-                  >
-                    <View style={styles.menuModalContent}>
-                      <Pressable
-                        style={styles.menuOptionButton}
-                        onPress={handleDeletePhoto}
-                      >
-                        <Ionicons name="trash-outline" size={24} color="#dc3545" />
-                        <Text style={styles.menuOptionText}>
-                          {t('myNewsScreen.delete')}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </TouchableOpacity>
-                </Modal>
-              </>
-            )}
-          </View>
-        </Modal>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={28} color={colors.green} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>{t('tab.myStore')}</Text>
+        <TouchableOpacity onPress={() => { setProductToEdit(null); setIsModalVisible(true); }}>
+          <Ionicons name="add-circle-outline" size={30} color={colors.tint} />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.categorysScroll}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {categories.map((cat: Category) => (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.categoryButton, selectedCategoryId === cat.id && styles.selectedCategoryButton]}
+              onPress={() => setSelectedCategoryId(cat.id)}
+            >
+              <Text style={[styles.categoryButtonText, selectedCategoryId === cat.id && styles.selectedCategoryButtonText]}>
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+      <ScrollView style={styles.productsContainer}>
+        {renderContent()}
       </ScrollView>
+      {isModalVisible && (
+        <ProductModal
+          isVisible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          onSave={handleSaveProduct}
+          productToEdit={productToEdit}
+          selectedCategories={selectedCategoryId || ''}
+          productTypes={productToEdit?.productType || ''}
+        />
+      )}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 10,
-    backgroundColor: '#f8f8f8',
-  },
-  scrollViewContent: {
-    paddingHorizontal: 15,
-    paddingBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#78290f',
-    marginTop: 15,
-    marginBottom: 10,
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#ff7d00',
-    paddingBottom: 5,
-  },
-  photosGridContainer: {
-    paddingVertical: 5,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 10,
-    width: '100%',
-  },
-  photoContainerPic: {
-    width: s.PRODUCT_APERCU_W,
-    height: s.PRODUCT_APERCU_H,
-    marginBottom: 15,
-  },
-  photoThumbnail: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  photoLikes: {
-    color: '#ffecd1',
-    fontWeight: '900',
-    marginLeft: 5,
-    textShadowColor: '#000000',
-    textShadowRadius: 8,
-    textShadowOffset: { width: 0, height: 0 },
-  },
-  addPhotoButton: {
-    width: s.PRODUCT_APERCU_W,
-    height: s.PRODUCT_APERCU_H,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: '#15616d',
-    marginHorizontal: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  addPhotoText: {
-    color: '#001524',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginTop: 5,
-  },
-  noPhotosContainer: {
-    width: s.PRODUCT_APERCU_W,
-    height: s.PRODUCT_APERCU_H,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginRight: 10,
-    backgroundColor: '#fff',
-  },
-  noPhotosText: {
-    color: '#555',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  centeredViewPic: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  modalViewPic: {
-    margin: 20,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    width: '90%',
-    maxHeight: '80%',
-  },
-  modalCloseIcon: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 1,
-  },
-  modalTitlePic: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#001524',
-    textAlign: 'center',
-  },
-  selectedImagePreview: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'contain',
-    marginBottom: 20,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  modalButtonPic: {
-    borderRadius: 10,
-    padding: 12,
-    elevation: 2,
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  modalButtonPrimary: {
-    backgroundColor: '#ff7d00',
-  },
-  modalButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    fontSize: 16,
-  },
-  fullScreenOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullScreenImage: {
-    width: '100%',
-    height: '100%',
-  },
-  fullScreenHeader: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 1,
-    backgroundColor: '#001524',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  fullScreenCloseButton: {
-    padding: 5,
-  },
-  fullScreenMenuButton: {
-    padding: 5,
-  },
-  fullScreenFooter: {
-    position: 'absolute',
-    bottom: 30,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-  },
-  fullScreenLikeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 5,
-  },
-  fullScreenLikesText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
-  menuModalBackground: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  likesGridOverlay: {
-    position: 'absolute',
-    bottom: 5,
-    left: 5,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  menuModalContent: {
-    backgroundColor: '#fff',
-    width: '100%',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  menuOptionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 15,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  menuOptionText: {
-    fontSize: 18,
-    color: '#000',
-    marginLeft: 10,
-    fontWeight: 'bold',
-  },
-  statsContainer: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
-    borderWidth: 1.5,
-    padding: 15,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  smallLabel: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#001524',
-    marginBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 5,
-  },
-  followersLabel: {
-    marginTop: 15,
-  },
-  followersCountText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#001524',
-    textAlign: 'left',
-    marginTop: 10,
-    marginLeft: 10,
-  },
-});
+const getStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    loader: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+      paddingTop: Platform.OS === 'android' ? 30 : 0,
+      padding: 10,
+      backgroundColor: colors.background,
+    },
+    categorysScroll: {
+      maxHeight: 50,
+      marginBottom: 10,
+    },
+    categoryButton: {
+      paddingVertical: 8,
+      paddingHorizontal: 15,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      marginRight: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    selectedCategoryButton: {
+      backgroundColor: colors.tint,
+    },
+    categoryButtonText: {
+      color: colors.text,
+    },
+    selectedCategoryButtonText: {
+      color: colors.textNormal,
+      fontWeight: 'bold',
+    },
+    productsContainer: {
+      flex: 1,
+      marginTop: 40,
+    },
+    emptyListContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      minWidth: 300,
+      height: 200,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 10,
+      marginTop: 40,
+      marginBottom: 20,
+    },
+    headerTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: colors.text,
+    },
+  });
+};
+
+const getProductStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      padding: 10,
+      marginRight: 10,
+      width: 160,
+      height: 220,
+      elevation: 3,
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    image: {
+      width: '100%',
+      height: 100,
+      borderRadius: 6,
+      marginBottom: 8,
+      resizeMode: 'cover',
+    },
+    name: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      color: colors.text,
+    },
+    price: {
+      fontSize: 14,
+      color: colors.green,
+      fontWeight: 'bold',
+      marginBottom: 8,
+    },
+    menuButtonContainer: {
+      alignSelf: 'flex-end',
+      marginTop: 'auto',
+    },
+    menuButton: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: colors.icon,
+      paddingHorizontal: 5,
+    },
+  });
+};
+
+const getProductTypeSectionStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    container: {
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      marginBottom: 10,
+      color: colors.text,
+      paddingLeft: 5,
+    },
+    addProductButtonCard: {
+      width: 160,
+      height: 220,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      marginRight: 10,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 1.5,
+      borderColor: colors.green,
+      borderStyle: 'dashed',
+      padding: 10,
+    },
+    addProductButtonText: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: colors.green,
+      textAlign: 'center',
+    },
+  });
+}

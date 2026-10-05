@@ -1,384 +1,311 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView, Linking, Image, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { account } from './appwriteConfig';
+import ForgotPasswordModal from '../modals/modalChangeResetPassword';
 import { useRouter } from 'expo-router';
-import { sendInviteEmail } from '../backends/invitDeepLnkMail';
-import { TeamBackend } from '../backends/invitGestionnaireBackNd';
-import { PremiumCommercant } from '@/app/(main)/calculation-logic/premiums';
 import { AppwriteException } from 'react-native-appwrite';
-import { validateEmail } from '../logic/centralAuthVerf';
-import { account, databases, config, Query } from '@/app/(main)/calculation-logic/appwriteConfig';
-import { useAppTranslation } from '@/translations/data/translationCentralization';
+import { getAppLogo } from '../logic/imagesLogic';
+import { useAppTranslation } from '../translations/data/translationCentralization';
+import { Colors } from '../appSellerColors';
 
-export default function TeamManagementScreen({ onBack }: { onBack: () => void }) {
-  const { t } = useAppTranslation();
-  const router = useRouter();
+interface TeamManagementProps {
+  onBack?: () => void;
+}
+
+const LoginScreen: React.FC<TeamManagementProps> = ({ onBack }) => {
+  const { t, currentLang, setLanguage } = useAppTranslation();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const styles = getStyles(theme);
   const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [storeId, setStoreId] = useState<string>('');
-  const [userId, setUserId] = useState<string>('');
-  const [activePack, setActivePack] = useState<PremiumCommercant | null>(null);
-  const [isPremiumActive, setIsPremiumActive] = useState(false);
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({
-    mystore: true,
-    mynews: true,
-    commands: true,
-  });
-  const [emails, setEmails] = useState<Record<string, string>>({
-    mystore: '',
-    mynews: '',
-    commands: '',
-    recette: '',
-  });
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [invalidEmail, setInvalidEmail] = useState(false);
+  const [wrongPassword, setWrongPassword] = useState(false);
+  const [accountNotFound, setAccountNotFound] = useState(false);
+  const [userDisabled, setUserDisabled] = useState(false);
 
-  useEffect(() => {
-    const fetchPackStatus = async () => {
-      try {
-        const user = await account.get();
-        setUserId(user.$id);
-        const response = await databases.listDocuments(
-          config.databaseId,
-          config.usersCollectionId,
-          [Query.equal('userId', user.$id)]
-        );
-        if (response.documents.length > 0) {
-          const doc = response.documents[0];
-          setIsPremiumActive(doc.isPremium || false);
-          setActivePack(doc.premiumPack as PremiumCommercant || null);
-          setStoreId(doc.storeId || '');
-        }
-      } catch (error) {
-        console.error("Erreur pack:", error);
-      }
-    };
-    fetchPackStatus();
-  }, []);
+  const [showResetModal, setShowResetModal] = useState(false);
 
-  const handleSendIndividualInvite = async (screenKey: keyof typeof emails) => {
-    const targetEmail = emails[screenKey].trim();
-    if (!targetEmail || !validateEmail(targetEmail)) return;
+  const router = useRouter();
 
-    setIsLoading(true);
-    let invitationData: { success: boolean; inviteId: string; token: string };
-    try {
-      invitationData = await TeamBackend.sendInvite({
-        email: targetEmail,
-        inviterId: userId,
-        storeId: storeId,
-        permissions: {
-          mystore: screenKey === 'mystore',
-          mynews: screenKey === 'mynews',
-          commands: screenKey === 'commands',
-          recette: screenKey === 'recette'
-        }
-      });
-
-      await sendInviteEmail({
-        email: targetEmail,
-        redirectUrl: `cegget://invite?inviteId=${invitationData.inviteId}`, isPremium: true
-      });
-
-      setEmails((prev: Record<string, string>) => ({ ...prev, [screenKey]: '' }));
-      Alert.alert(t('general.success'), t('emailEnvoyeSucc'));
-    } catch (error) {
-      Alert.alert(t('general.error'), t('genericError'));
-    } finally {
-      setIsLoading(false);
-    }
+  const toggleLang = () => {
+    const nextLang = currentLang === 'kab' ? 'fr' : 'kab';
+    setLanguage(nextLang);
   };
 
-  const isButtonDisabled = isLoading || !email.trim() || !Object.values(permissions).some(v => v);
-  const togglePermission = (key: string) => {
-    if (!isPremiumActive) return;
-    setPermissions((prev: Record<string, boolean>) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const handleLogin = async () => {
+    if (email === '' || password === '') return;
 
-  const handleSendInvite = async () => {
-    setEmailError('');
-    if (!validateEmail(email)) {
-      setEmailError(t('auth/invalid-email'));
+    setInvalidEmail(false);
+    setWrongPassword(false);
+    setAccountNotFound(false);
+    setUserDisabled(false);
+
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!emailValid) {
+      setInvalidEmail(true);
       return;
     }
-    let invitationData: { success: boolean; inviteId: string; token: string };
+
     try {
-      setIsLoading(true);
-      invitationData = await TeamBackend.sendInvite({
-        email: email,
-        inviterId: userId,
-        storeId: storeId,
-        permissions: {
-          mystore: !!permissions.mystore,
-          mynews: !!permissions.mynews,
-          commands: !!permissions.commands,
-          recette: false
-        }
-      });
-
-      await sendInviteEmail({
-        email: email,
-        redirectUrl: `cegget://invite?inviteId=${invitationData.inviteId}`, isPremium: false
-      });
-
-      setEmail('');
-      setEmailError('');
-      Alert.alert(t('general.success'), t('emailEnvoyeSucc'));
+      await account.createEmailPasswordSession(email, password);
     } catch (error) {
-      const err = error as AppwriteException;
-      console.error("Erreur Appwrite:", err.message);
-      Alert.alert(t('general.error'), t('genericError'));
-    } finally {
-      setIsLoading(false);
+      if ((error as AppwriteException).code === 401) {
+        setWrongPassword(true);
+      } else if ((error as AppwriteException).code === 404) {
+        setAccountNotFound(true);
+      } else if ((error as AppwriteException).code === 403) {
+        setUserDisabled(true);
+      } else {
+        console.log("Erreur inattendue", error);
+      }
     }
-  };
-
-  const renderCheckbox = (title: string, key: keyof typeof permissions) => {
-    const isChecked = isPremiumActive ? permissions[key] : true;
-    return (
-      <TouchableOpacity
-        style={styles.checkboxRow}
-        onPress={() => togglePermission(key as string)}
-        activeOpacity={isPremiumActive ? 0.7 : 1}
-        disabled={!isPremiumActive}
-      >
-        <Text style={styles.checkboxLabel}>{title}</Text>
-        <View style={[styles.checkbox, isChecked && styles.checkboxActive]}>
-          {isChecked && <Ionicons name="checkmark" size={16} color="#fff" />}
-        </View>
-      </TouchableOpacity>
-    );
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>          <Ionicons name="chevron-back" size={24} color="#001524" />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.topBar}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={getAppLogo(false).source}
+            style={{ width: getAppLogo(false).width as number, height: getAppLogo(false).height as number, borderRadius: 12 }}
+            resizeMode="contain"
+          />
+        </View>
+        <TouchableOpacity onPress={toggleLang} style={styles.langButton}>
+          <Ionicons name="globe-outline" size={18} color={Colors[theme].tint} />
+          <Text style={styles.langButtonText}>
+            {currentLang === 'kab' ? 'Taqvaylit' : 'Français'}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.sectionTitle}>{t('profileScreen.gestion')}</Text>
       </View>
-      <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
-        {(activePack === PremiumCommercant.Gestionnaire3 || activePack === PremiumCommercant.Gestionnaire4Recette) ? (
-          <View>
-            <View style={styles.permissionsContainer}>
-              <Text style={styles.inputLabel}>{t('tab.myStore')}</Text>
-              <Text style={styles.infoText}>{t('teamManagement.descMyStore')}</Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>{t('welcome')}</Text>
+        {!accountNotFound && (
+          <>
+            <Text style={styles.label}>{t('email')}</Text>
+            <View style={styles.inputGroup}>
+              <Ionicons name="mail-outline" size={20} color={Colors[theme].icon} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder={t('profileScreen.newEmailPlaceholder')}
-                value={emails.mystore}
-                onChangeText={(text: string) => setEmails((prev: Record<string, string>) => ({ ...prev, mystore: text }))}
+                placeholder={t('emailPlaceholder')}
+                placeholderTextColor={Colors[theme].greyDes}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
               />
-              <TouchableOpacity
-                style={[styles.submitButton, (!emails.mystore.trim() || isLoading) && styles.submitButtonDisabled]}
-                onPress={() => handleSendIndividualInvite('mystore')}
-                disabled={!emails.mystore.trim() || isLoading}
-              >
-                <Text style={styles.submitButtonText}>{t('submitButton')}</Text>
-              </TouchableOpacity>
             </View>
-
-            <View style={styles.permissionsContainer}>
-              <Text style={styles.inputLabel}>{t('tab.myNews')}</Text>
-              <Text style={styles.infoText}>{t('teamManagement.descMaCom')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('profileScreen.newEmailPlaceholder')}
-                value={emails.mynews}
-                onChangeText={(text: string) => setEmails((prev: Record<string, string>) => ({ ...prev, mynews: text }))}
-              />
-              <TouchableOpacity
-                style={[styles.submitButton, (!emails.mynews.trim() || isLoading) && styles.submitButtonDisabled]}
-                onPress={() => handleSendIndividualInvite('mynews')}
-                disabled={!emails.mynews.trim() || isLoading}
-              >
-                <Text style={styles.submitButtonText}>{t('submitButton')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.permissionsContainer}>
-              <Text style={styles.inputLabel}>{t('tab.commandsMgz')}</Text>
-              <Text style={styles.infoText}>{t('teamManagement.descCommandes')}</Text>
-              <TextInput
-                style={styles.input}
-                placeholder={t('profileScreen.newEmailPlaceholder')}
-                value={emails.commands}
-                onChangeText={(text: string) => setEmails((prev: Record<string, string>) => ({ ...prev, commands: text }))}
-              />
-              <TouchableOpacity
-                style={[styles.submitButton, (!emails.commands.trim() || isLoading) && styles.submitButtonDisabled]}
-                onPress={() => handleSendIndividualInvite('commands')}
-                disabled={!emails.commands.trim() || isLoading}
-              >
-                <Text style={styles.submitButtonText}>{t('submitButton')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {activePack === PremiumCommercant.Gestionnaire4Recette && (
-              <View style={styles.permissionsContainer}>
-                <Text style={styles.inputLabel}>{t('tab.revenue')}</Text>
-                <Text style={styles.infoText}>{t('teamManagement.descRecette')}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={t('profileScreen.newEmailPlaceholder')}
-                  value={emails.recette}
-                  onChangeText={(text: string) => setEmails((prev: Record<string, string>) => ({ ...prev, recette: text }))}
-                />
-                <TouchableOpacity
-                  style={[styles.submitButton, (!emails.recette.trim() || isLoading) && styles.submitButtonDisabled]}
-                  onPress={() => handleSendIndividualInvite('recette')}
-                  disabled={!emails.recette.trim() || isLoading}
-                >
-                  <Text style={styles.submitButtonText}>{t('submitButton')}</Text>
-                </TouchableOpacity>
-              </View>
+            {invalidEmail && (
+              <Text style={styles.errorText}>{t('auth/invalid-email')}</Text>
             )}
-          </View>
-        ) : (
-          <View>
-            <Text style={styles.infoText}>{t('teamManagement.description')}</Text>
-            <Text style={styles.inputLabel}>{t('profileScreen.email')}</Text>
-            <TextInput
-              style={styles.input}
-              placeholder={t('profileScreen.newEmailPlaceholder')}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-            />
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-            <View style={styles.permissionsContainer}>
-              {renderCheckbox(t('tab.myStore'), "mystore")}
-              {renderCheckbox(t('tab.myNews'), "mynews")}
-              {renderCheckbox(t('tab.commandsMgz'), "commands")}
+            <Text style={styles.label}>{t('password')}</Text>
+            <View style={styles.inputGroup}>
+              <Ionicons name="lock-closed-outline" size={20} color={Colors[theme].icon} style={styles.inputIcon} />
+              <TextInput
+                style={styles.passwordInput}
+                placeholder='**********'
+                placeholderTextColor={Colors[theme].greyDes}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+              <TouchableOpacity onPress={() => setShowPassword((prev: boolean) => !prev)} style={styles.eyeButton}>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors[theme].icon} />
+              </TouchableOpacity>
             </View>
+            {wrongPassword && (
+              <>
+                <Text style={styles.errorText}>{t('auth/wrong-password')}</Text>
+                <TouchableOpacity
+                  style={styles.footerLinkContaineroub}
+                  onPress={() => setShowResetModal(true)}
+                >
+                  <Text style={styles.footerLink}>{t('forgotPassword')}</Text>
+                </TouchableOpacity>
+              </>
+            )}
 
-            <TouchableOpacity
-              style={[styles.submitButton, isButtonDisabled && styles.submitButtonDisabled]}
-              onPress={handleSendInvite}
-              disabled={isButtonDisabled}
-            >
-              <Text style={styles.submitButtonText}>{t('submitButton')}</Text>
+            {userDisabled && (
+              <Text style={styles.errorText}>{t('auth/user-disabled')}</Text>
+            )}
+            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+              <Text style={styles.loginButtonText}>{t('login')}</Text>
             </TouchableOpacity>
-          </View>
+            <TouchableOpacity style={styles.registerButton} onPress={() => router.push('/appSeller/modals/registrationFromKmrs')}>
+              <Text style={styles.registerButtonText}>{t('registerMySelf')}</Text>
+            </TouchableOpacity>
+          </>
         )}
-      </ScrollView>
-    </View >
-  );
-}
+        {accountNotFound && (
+          <>
+            <Text style={styles.notFoundText}>{t('auth/user-not-found')}</Text>
+            <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/appSeller/modals/registrationFromKmrs')}>
+              <Text style={styles.loginButtonText}>{t('registerMySelf')}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+      <ForgotPasswordModal
+        visible={showResetModal}
+        onClose={() => setShowResetModal(false)}
+      />
+    </SafeAreaView>
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  );
+};
+
+const getStyles = (theme: 'light' | 'dark') => StyleSheet.create({
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors[theme].green,
+    opacity: 1,
   },
-  header: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors[theme].background,
+  },
+  topBar: {
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    backgroundColor: Colors[theme].background,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  langButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: 35,
-    backgroundColor: '#fff',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    gap: 8,
+    marginTop: 18,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 999,
+    backgroundColor: Colors[theme].accent,
   },
-  backButton: {
-    marginRight: 15,
-  },
-  inputLabel: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    marginBottom: 30,
-    backgroundColor: '#f9f9f9'
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 12,
-    marginTop: -25,
-    marginBottom: 15,
-    marginLeft: 5,
+  langButtonText: {
+    color: Colors[theme].tint,
+    fontSize: 15,
+    fontWeight: '700',
   },
   content: {
     flex: 1,
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: Colors[theme].green,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
+    paddingHorizontal: 26,
+    paddingTop: 40,
+    paddingBottom: 40,
   },
-  infoText: {
-    fontSize: 15,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 15,
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#001524',
-    marginTop: 10,
-    marginBottom: 5
-  },
-  permissionsContainer: {
-    backgroundColor: '#f8f9fa',
-    borderRadius: 10,
-    padding: 10,
+  title: {
+    fontSize: 26,
+    fontWeight: '600',
+    alignSelf: 'center',
+    color: Colors[theme].accent,
     marginBottom: 30,
-    borderWidth: 1,
-    borderColor: '#eee'
+    textAlign: 'center',
   },
-  checkboxRow: {
+  label: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors[theme].textNormal,
+    marginBottom: 6,
+    marginTop: 16,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: Colors[theme].greyDes,
+  },
+  inputGroup: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee'
-  },
-  checkboxLabel: {
-    fontSize: 16,
-    color: '#333'
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    gap: 10,
+    backgroundColor: Colors[theme].background,
     borderWidth: 2,
-    borderColor: '#ddd',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff'
+    borderColor: Colors[theme].tint,
+    borderRadius: 999,
+    paddingHorizontal: 20,
   },
-  checkboxActive: {
-    backgroundColor: '#001524',
-    borderColor: '#001524'
+  inputIcon: {
+    flexShrink: 0,
   },
-  submitButton: {
-    backgroundColor: '#78290f',
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: Colors[theme].textNormal,
+  },
+  eyeButton: {
+    paddingHorizontal: 4,
     paddingVertical: 12,
-    paddingHorizontal: '35%',
-    borderRadius: 15,
+  },
+  loginButton: {
+    backgroundColor: Colors[theme].tint,
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignSelf: 'stretch',
+    marginTop: 34,
+    alignItems: 'center',
+    width: '30%',
+  },
+  loginButtonText: {
+    color: Colors[theme].accent,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  footerLinkContaineroub: {
+    flexDirection: 'row',
+    alignSelf: 'center',
+    gap: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: Colors[theme].green,
+    maxWidth: '60%',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  footerLink: {
+    fontSize: 16,
+    color: Colors[theme].textNormal,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  notFoundText: {
+    color: Colors[theme].textNormal,
+    fontSize: 18,
+    fontWeight: '600',
+    alignSelf: 'center',
+    marginBottom: 30,
+    marginTop: 40,
+  },
+  errorText: {
+    color: '#FF9E80',
+    fontSize: 15,
+    fontWeight: '600',
+    alignSelf: 'center',
+    marginTop: 12,
+  },
+  registerButton: {
+    borderRadius: 5,
+    paddingVertical: 12,
     alignSelf: 'center',
     marginTop: 10,
-    marginBottom: 40
+    width: '30%',
+    borderWidth: 2,
   },
-  submitButtonDisabled: {
-    backgroundColor: '#bbb',
-  },
-  submitButtonText: {
-    color: '#fff',
+  registerButtonText: {
+    color: Colors[theme].accent,
     fontSize: 16,
-    fontWeight: 'bold'
-  }
+    fontWeight: '700',
+    alignSelf: 'center',
+  },
 });
+
+export default LoginScreen;
