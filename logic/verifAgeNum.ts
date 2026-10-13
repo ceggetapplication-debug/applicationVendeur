@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useAppTranslation } from './translations/data/translationCentralization.ts';
+import { useAppTranslation } from '../translations/data/translationCentralization';
 
 export const useAgePhoneValidation = () => {
   const { t } = useAppTranslation();

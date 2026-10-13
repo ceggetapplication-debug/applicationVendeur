@@ -40,7 +40,7 @@ export class SearchLogic {
     static async performSearch(term: string, language: 'fr' | 'kab'): Promise<SearchResult[]> {
         try {
             await loadTranslationsFromJson();
-            const matched = getProductSuggestions(term, language, 20);
+            const matched = getProductSuggestions(term, language, 10);
             if (matched.length === 0) return [];
             const searchNames: string[] = [];
             matched.forEach(s => {

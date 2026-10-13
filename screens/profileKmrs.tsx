@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Platform, Linking, TextInput, Modal, Pressable, Switch, useColorScheme } from 'react-native';
+import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, Platform, Linking, TextInput, Modal, Switch, useColorScheme, ActivityIndicator } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { OneSignal } from 'react-native-onesignal';
-import { Colors } from '../appSellerColors';
+import { Colors } from '../constants/Colors';
 import TeamManagementScreen from '../modals/invitationGestionnaire';
 import PremiumKmrsOffersModal from '../modals/modalPremiumsKMRS';
 import { sizes, buildStoreProfilePhoto, buildStorePhoto, uploadToR2 } from '../logic/imagesLogic';
-import { account, databases, config, Query, ID } from '../logic/appwriteConfig';
+import { account, databases, config, Query, ID, sendPasswordResetEmailWithFallback } from '../logic/appwriteConfig';
 import { useAppTranslation } from '../translations/data/translationCentralization';
+
 
 const s = sizes();
 
@@ -30,7 +31,6 @@ function ProfileScreen() {
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
   const colors = Colors[theme];
   const styles = getStyles(theme);
-  const params = useLocalSearchParams();
   const [currentView, setCurrentView] = useState<'menu' | 'accountDetails' | 'languages' | 'notifications' | 'gestion'>('menu');
   const [isNotificationsExpanded, setIsNotificationsExpanded] = useState(false);
   const [receiveNewOrderNotifications, setReceiveNewOrderNotifications] = useState(true);
@@ -40,22 +40,23 @@ function ProfileScreen() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [deleteAccountModalVisible, setDeleteAccountModalVisible] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
+  const [deleteAccountError, setDeleteAccountError] = useState('');
   const [newEmailInput, setNewEmailInput] = useState('');
+  const [currentPasswordForEmail, setCurrentPasswordForEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [profileDocId, setProfileDocId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState('');
-  const [arePushNotificationsEnabled, setArePushNotificationsEnabled] = useState(true);
   const [currentPasswordInput, setCurrentPasswordInput] = useState('');
   const [newPasswordInput, setNewPasswordInput] = useState('');
   const [newPhoneInput, setNewPhoneInput] = useState('');
-  const [verificationCodeInput, setVerificationCodeInput] = useState('');
-  const [showEmailCodeInput, setShowEmailCodeInput] = useState(false);
+  const [emailLinkSent, setEmailLinkSent] = useState(false);
+  const [passwordLinkSent, setPasswordLinkSent] = useState(false);
   const [avantagesModalVisible, setAvantagesModalVisible] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPackName, setPremiumPackName] = useState('');
   const [premiumEndDate, setPremiumEndDate] = useState('');
   const [isPremiumOffersVisible, setIsPremiumOffersVisible] = useState(false);
-  const [showPasswordCodeInput, setShowPasswordCodeInput] = useState(false);
   const [userData, setUserData] = useState<UserProfile>({
     storeName: '',
     storeAdress: '',
@@ -164,23 +165,40 @@ function ProfileScreen() {
 
   const handleEditEmail = () => {
     setNewEmailInput('');
-    setVerificationCodeInput('');
-    setShowEmailCodeInput(false);
+    setCurrentPasswordForEmail('');
+    setEmailError('');
+    setEmailLinkSent(false);
     setEmailModalVisible(true);
   };
 
   const handleSaveNewEmail = async () => {
-    if (!newEmailInput) {
-      Alert.alert(t('general.error'), t('profileScreen.enterNewEmailError'));
+    const newEmail = newEmailInput.trim();
+    setEmailError('');
+
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      setEmailError(t('auth/invalid-email'));
       return;
     }
+
+    if (!currentPasswordForEmail) {
+      setEmailError(t('profileScreen.currentPasswordPlaceholder'));
+      return;
+    }
+
     try {
       setIsLoading(true);
-      await account.createVerification(`${globalConfig.appDomain}/verify-email`);
-      Alert.alert(t('general.success'), t('check_email_to_verify'));
-      setEmailModalVisible(false);
+      const updatedUser = await account.updateEmail(
+        newEmail,
+        currentPasswordForEmail
+      );
+      setUserData((previous: UserProfile) => ({
+        ...previous,
+        email: updatedUser.email,
+      }));
+      setEmailLinkSent(true);
     } catch (error) {
-      Alert.alert(t('general.error'), t('genericError'));
+      console.error('Erreur lors du changement d’adresse e-mail :', error);
+      setEmailError(t('genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -189,33 +207,29 @@ function ProfileScreen() {
   const handleChangePassword = () => {
     setCurrentPasswordInput('');
     setNewPasswordInput('');
-    setVerificationCodeInput('');
-    setShowPasswordCodeInput(false);
+    setPasswordError('');
+    setPasswordLinkSent(false);
     setPasswordModalVisible(true);
   };
 
   const handleSaveNewPassword = async () => {
     if (!currentPasswordInput || !newPasswordInput) {
-      Alert.alert(t('general.error'), t('profileScreen.passwordFieldsRequired'));
+      setPasswordError(t('profileScreen.passwordFieldsRequired'));
       return;
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[*@#!?&%])(?=.{8,})/;
     if (!passwordRegex.test(newPasswordInput)) {
-      Alert.alert(t('profileScreen.weakPassword'), t('profileScreen.weakPasswordHint'));
+      setPasswordError(t('profileScreen.weakPasswordHint'));
       return;
     }
     try {
       setIsLoading(true);
-      await account.createRecovery(userData.email, `${globalConfig.appDomain}/reset-password`);
-      Alert.alert(
-        t('general.success'),
-        t('check_email_to_verify')
-      );
-      setPasswordModalVisible(false);
+      await sendPasswordResetEmailWithFallback(userData.email, `${globalConfig.appDomain}/reset-password`);
+      setPasswordLinkSent(true);
     } catch (error) {
       console.error("Erreur Recovery:", error);
-      Alert.alert(t('general.error'), t('genericError'));
+      setPasswordError(t('genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -271,7 +285,7 @@ function ProfileScreen() {
       setPhoneModalVisible(false);
       Alert.alert(t('general.success'), t('profileScreen.phoneNumberUpdatedSuccess'));
     } catch (error) {
-      Alert.alert(t('general.error'), t('genericError'));
+      setPasswordError(t('genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -349,13 +363,14 @@ function ProfileScreen() {
   };
 
   const handleDeleteAccount = async () => {
+    setDeleteAccountError('');
     try {
       setIsLoading(true);
       await databases.deleteDocument(config.databaseId, config.usersCollectionId, profileDocId);
       await account.deleteSession('current');
       router.replace('/(auth)/sign-in');
     } catch (error) {
-      Alert.alert(t('general.error'), t('genericError'));
+      setDeleteAccountError(t('genericError'));
     } finally {
       setIsLoading(false);
     }
@@ -403,7 +418,7 @@ function ProfileScreen() {
       case t('profileScreen.gestion') || 'Gestion': setCurrentView('gestion'); break;
       case t('profileScreen.contactUs'): setContactModalVisible(true); break;
       case t('profileScreen.logout'): handleLogoutAlert(); break;
-      case t('profileScreen.deleteAccount'): setDeleteAccountModalVisible(true); break;
+      case t('profileScreen.deleteAccount'): setDeleteAccountError(''); setDeleteAccountModalVisible(true); break;
       default: break;
     }
   };
@@ -539,10 +554,10 @@ function ProfileScreen() {
           <ScrollView>
             <Text style={styles.languageTitle}>{t('profileScreen.languages') || 'Languages'}</Text>
             <TouchableOpacity style={styles.languageItem} onPress={() => handleLanguageSelect('fr')}>
-              <Text style={styles.languageText}>Français (fr)</Text>
+              <Text style={styles.languageText}>Taqvaylit (kab)</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.languageItem} onPress={() => handleLanguageSelect('kab')}>
-              <Text style={styles.languageText}>Taqvaylit (kab)</Text>
+              <Text style={styles.languageText}>Français (fr)</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -562,10 +577,20 @@ function ProfileScreen() {
             <Text style={styles.modalValue}>{userData.email}</Text>
             <Text style={styles.modalLabel}>{t('profileScreen.newEmail')}</Text>
             <TextInput style={styles.modalInput} placeholder={t('profileScreen.newEmailPlaceholder')}
-              keyboardType="email-address" value={newEmailInput} onChangeText={setNewEmailInput} autoCapitalize="none" />
-            <Pressable style={[styles.modalButton, styles.modalButtonSave]} onPress={handleSaveNewEmail}>
-              <Text style={styles.textStyle}>{t('general.save')}</Text>
-            </Pressable>
+              keyboardType="email-address" value={newEmailInput} onChangeText={(value: string) => { setNewEmailInput(value); setEmailError(''); }} autoCapitalize="none" />
+            <Text style={styles.modalLabel}>{t('profileScreen.currentPassword')}</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="********"
+              secureTextEntry
+              value={currentPasswordForEmail}
+              onChangeText={(value: string) => { setCurrentPasswordForEmail(value); setEmailError(''); }}
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            {emailLinkSent && <Text style={styles.modalMessage}>{t('check_email_to_verify')}</Text>}
+            <TouchableOpacity style={[styles.modalButton, styles.modalButtonSave]} activeOpacity={0.7} onPress={handleSaveNewEmail} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color={colors.textNormal} /> : <Text style={styles.textStyle}>{t('general.save')}</Text>}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -586,7 +611,7 @@ function ProfileScreen() {
               placeholder={t('profileScreen.currentPasswordPlaceholder')}
               secureTextEntry={true}
               value={currentPasswordInput}
-              onChangeText={setCurrentPasswordInput}
+              onChangeText={(value: string) => { setCurrentPasswordInput(value); setPasswordError(''); }}
             />
             <Text style={styles.modalLabel}>{t('profileScreen.newPassword')}</Text>
             <TextInput
@@ -594,12 +619,14 @@ function ProfileScreen() {
               placeholder={t('profileScreen.newPasswordPlaceholder')}
               secureTextEntry={true}
               value={newPasswordInput}
-              onChangeText={setNewPasswordInput}
+              onChangeText={(value: string) => { setNewPasswordInput(value); setPasswordError(''); }}
             />
             <Text style={styles.passwordHintText}>{t('profileScreen.weakPasswordHint')}</Text>
-            <Pressable style={[styles.modalButton, styles.modalButtonSave]} onPress={handleSaveNewPassword}>
-              <Text style={styles.textStyle}>{t('profileScreen.changePasswordTitle')}</Text>
-            </Pressable>
+            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+            {passwordLinkSent && <Text style={styles.modalMessage}>{t('check_email_to_verify')}</Text>}
+            <TouchableOpacity style={[styles.modalButton, styles.modalButtonSave]} activeOpacity={0.7} onPress={handleSaveNewPassword} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color={colors.textNormal} /> : <Text style={styles.textStyle}>{t('profileScreen.changePasswordTitle')}</Text>}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -618,13 +645,16 @@ function ProfileScreen() {
             <Text style={styles.modalValue}>{userData.phoneNumber}</Text>
             <Text style={styles.modalLabel}>{t('profileScreen.newPhoneNumber')}</Text>
             <TextInput style={styles.modalInput} placeholder="0XXXXXXXXX"
-              keyboardType="phone-pad" value={newPhoneInput} onChangeText={setNewPhoneInput} />
+              keyboardType="phone-pad" value={newPhoneInput} onChangeText={(value: string) => { setNewPhoneInput(value); setPasswordError(''); }} />
             <Text style={styles.modalLabel}>{t('profileScreen.currentPasswordPlaceholder') || "Mot de passe actuel"}</Text>
             <TextInput style={styles.modalInput} placeholder="********"
               secureTextEntry={true} value={currentPasswordInput} onChangeText={setCurrentPasswordInput} />
-            <Pressable style={[styles.modalButton, styles.modalButtonSave]} onPress={handleSaveNewPhoneNumber}>
+            {passwordError ? (
+              <Text style={styles.errorText}>{passwordError}</Text>
+            ) : null}
+            <TouchableOpacity style={[styles.modalButton, styles.modalButtonSave]} activeOpacity={0.7} onPress={handleSaveNewPhoneNumber}>
               <Text style={styles.textStyle}>{t('general.save')}</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -667,21 +697,25 @@ function ProfileScreen() {
             <Text style={styles.modalLabel}>{t('profileScreen.deleteReasonLabel')}</Text>
             <TextInput
               style={[styles.modalInput, { height: 100, textAlignVertical: 'top' }]}
-              multiline maxLength={150} value={deleteReason} onChangeText={setDeleteReason}
+              multiline maxLength={150} value={deleteReason} onChangeText={(value: string) => { setDeleteReason(value); setDeleteAccountError(''); }}
               placeholder={t('profileScreen.deleteReasonPlaceholder')} />
             <Text style={{ alignSelf: 'flex-end', fontSize: 12, color: colors.greyDes, marginTop: 2, marginBottom: 10 }}>
               {deleteReason.length}/150
             </Text>
-            <Pressable
-              style={[styles.modalButton, styles.modalButtonSave, { backgroundColor: colors.green, marginTop: 20 }, !deleteReason.trim() && styles.disabledButtonModal]}
-              onPress={handleDeleteAccount} disabled={!deleteReason.trim()}>
+            {deleteAccountError ? <Text style={styles.errorText}>{deleteAccountError}</Text> : null}
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonSave, !deleteReason.trim() && styles.disabledButtonModal]}
+              onPress={handleDeleteAccount}
+              disabled={!deleteReason.trim()}>
               <Text style={[styles.textStyle, !deleteReason.trim() && styles.disabledButtonText]}>
                 {t('profileScreen.cancelContract')}
               </Text>
-            </Pressable>
-            <Pressable style={[styles.modalButton, { backgroundColor: colors.tint }]} onPress={handleGoBackFromDeleteAccountModal}>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonSave]}
+              onPress={handleGoBackFromDeleteAccountModal}>
               <Text style={styles.textStyle}>{t('general.cancel')}</Text>
-            </Pressable>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -734,6 +768,14 @@ function ProfileScreen() {
         onClose={() => setIsPremiumOffersVisible(false)}
         onUpgradePress={() => { }}
       />
+
+      {isLoading && (
+        <Modal transparent visible animationType="fade">
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={colors.tint} />
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -872,6 +914,19 @@ const getStyles = (theme: 'light' | 'dark') => {
       left: 10,
       zIndex: 10,
       padding: 5,
+    },
+    loadingOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorText: {
+      color: colors.errorText,
+      marginTop: 5,
+      marginBottom: 5,
+      textAlign: 'center',
+      fontSize: 14,
     },
     centeredView: {
       flex: 1,

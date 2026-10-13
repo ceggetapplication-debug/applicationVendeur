@@ -1,4 +1,56 @@
-import { Group } from '../modals-others/modalStoreInfos';
+export interface Product {
+    id: string;
+    name: string;
+    descriptionFr?: string;
+    descriptionKab?: string;
+    price?: number;
+    imageUrl?: string;
+    category?: string;
+    productType?: string;
+}
+
+export interface ProductType {
+    id: string;
+    name: string;
+    products?: Product[];
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    imageId?: string | null;
+    productTypes?: ProductType[];
+    products?: Product[];
+}
+
+export interface Store {
+    id: string;
+    name: string;
+    photo?: string;
+    imageId?: string | null;
+    categories?: Category[];
+}
+
+export interface StoreDetailed extends Store {
+    likes?: number;
+    email?: string;
+    telephone?: string;
+}
+
+export interface StoreType {
+    id: string;
+    name: string;
+    stores?: Store[];
+    storesD?: StoreDetailed[];
+}
+
+export interface Group {
+    id: string;
+    name: string;
+    photo?: string;
+    imageId?: string | null;
+    typesDeStore: StoreType[];
+}
 
 export const getHomeGroupes = (tr: (key: string) => string): Group[] => [
     {

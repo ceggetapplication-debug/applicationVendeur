@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { PremiumCommercant, PRIX_PREMIUM_COMMERCANT } from '../logic/premiums';
 import { Modal, Alert, View, Text, TouchableOpacity, ScrollView, StyleSheet, GestureResponderEvent, useColorScheme } from 'react-native';
-import { Colors } from '../appSellerColors';
+import { Colors } from '../constants/Colors';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { account, databases, ID, config, functions } from '../logic/appwriteConfig';
 import { useAppTranslation } from '../translations/data/translationCentralization';
@@ -15,8 +15,6 @@ interface PremiumOffersModalProps {
 interface SelectedOfferDetails {
   type: 'advantage' | 'subscription';
   label: string;
-  //value?: number;
-  //months?: number;
   price: number;
   confirmationTitle: string;
   confirmationBody: string;
@@ -27,8 +25,8 @@ const PremiumKmrsOffersModal = ({ isVisible, onClose, onUpgradePress }: PremiumO
   const { t } = useAppTranslation();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const styles = getStyles(theme);
   const colors = Colors[theme];
-  const modalStyles = getModalStyles(theme);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [isInfoModalVisible, setIsInfoModalVisible] = useState<boolean>(false);
   const [infoModalContent, setInfoModalContent] = useState<string>('');
@@ -49,7 +47,7 @@ const PremiumKmrsOffersModal = ({ isVisible, onClose, onUpgradePress }: PremiumO
       const user = await account.get();
 
       const execution = await functions.createExecution(
-        config.notificationFunctionId,
+        config.sireneFunctionId,
         JSON.stringify({
           userId: user.$id,
           userEmail: user.email,
@@ -154,93 +152,50 @@ const PremiumKmrsOffersModal = ({ isVisible, onClose, onUpgradePress }: PremiumO
       visible={isVisible}
       onRequestClose={onClose}
     >
-      <View style={modalStyles.fullScreenOverlay}>
+      <View style={styles.fullScreenOverlay}>
         {currentView === 'offers' && (
-          <View style={modalStyles.premiumModalView}>
-            <View style={modalStyles.modalHeader}>
-              <TouchableOpacity onPress={onClose} style={modalStyles.modalCloseButton}>
-                <Icon name="chevron-left" size={35} color={colors.text} />
+          <View style={styles.premiumModalView}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={onClose} style={styles.modalCloseButton}>
+                <Icon name="chevron-left" size={35} color={colors.textNormal} />
               </TouchableOpacity>
-              <Text style={modalStyles.modalTitle}>{t('view_premium_offers')}</Text>
+              <Text style={styles.modalTitle}>{t('view_premium_offers')}</Text>
             </View>
-            <ScrollView style={modalStyles.scrollViewContent}>
-              <Text style={modalStyles.generalInfoText}>
+            <ScrollView style={styles.scrollViewContent}>
+              <Text style={styles.generalInfoText}>
                 {t('textePresentationPremium')}
               </Text>
-              {errorStatus && <Text style={modalStyles.generalInfoText}>{errorStatus}</Text>}
-              <Text style={modalStyles.groupCtaText}>
+              {errorStatus && <Text style={styles.generalInfoText}>{errorStatus}</Text>}
+              <Text style={styles.groupCtaText}>
                 {t('avantagePremium')}
               </Text>
-              {/*<View style={modalStyles.buttonGroup}>
+              <View style={styles.buttonGroup}>
                 <TouchableOpacity
-                  style={modalStyles.advantageButton}
-                  onPress={() => handleKmrsOptionPress(PremiumCommercant.Niveau1, `1 ${t('month')}`)}
-                >
-                  <TouchableOpacity style={modalStyles.infoIconContainer} onPress={(e) => handleInfoIconPress(e, t('infosNiveau1'))}>
-                    <Icon name="information-outline" size={18} color={BROWN} />
-                  </TouchableOpacity>
-
-                  <View style={modalStyles.buttonContent}>
-                    <Icon name="calendar-month" size={40} color="#fff" />
-                    <Text style={modalStyles.largeButtonLabel}>1 {t('month')}</Text>
-                    <Text style={modalStyles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Niveau1]}</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={modalStyles.advantageButton}
-                  onPress={() => handleKmrsOptionPress(PremiumCommercant.Niveau2, `6 ${t('months')}`)}
-                >
-                  <TouchableOpacity style={modalStyles.infoIconContainer} onPress={(e) => handleInfoIconPress(e, t('infosNiveau2'))}>
-                    <Icon name="information-outline" size={18} color={BROWN} />
-                  </TouchableOpacity>
-                  <View style={modalStyles.buttonContent}>
-                    <Icon name="calendar-range" size={40} color={TEAL} />
-                    <Text style={modalStyles.largeButtonLabel}>6 {t('months')}</Text>
-                    <Text style={modalStyles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Niveau2]}</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={modalStyles.advantageButton}
-                  onPress={() => handleKmrsOptionPress(PremiumCommercant.Niveau3, `12 ${t('months')}`)}
-                >
-                  <TouchableOpacity style={modalStyles.infoIconContainer} onPress={(e) => handleInfoIconPress(e, t('infosNiveau3'))}>
-                    <Icon name="information-outline" size={18} color={BROWN} />
-                  </TouchableOpacity>
-                  <View style={modalStyles.buttonContent}>
-                    <Icon name="crown" size={40} color="#ffd700" />
-                    <Text style={modalStyles.largeButtonLabel}>12 {t('months')}</Text>
-                    <Text style={modalStyles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Niveau3]}</Text>
-                  </View>
-                </TouchableOpacity> 
-              </View> */}
-              <View style={modalStyles.buttonGroup}>
-                <TouchableOpacity
-                  style={modalStyles.dealButton}
+                  style={styles.dealButton}
                   onPress={() => handleKmrsOptionPress(PremiumCommercant.Gestionnaire3, t('teamManagement.pack3'))}
                 >
-                  <TouchableOpacity style={modalStyles.infoIconContainer} onPress={(e: GestureResponderEvent) => handleInfoIconPress(e, t('infosPack3'))}>
+                  <TouchableOpacity style={styles.infoIconContainer} onPress={(e: GestureResponderEvent) => handleInfoIconPress(e, t('infosPack3'))}>
                     <Icon name="information-outline" size={18} color={colors.tint} />
                   </TouchableOpacity>
 
-                  <View style={modalStyles.buttonContent}>
-                    <Icon name="people-outline" size={40} color={colors.text} />
-                    <Text style={modalStyles.largeButtonLabel}>{t('teamManagement.pack3')}</Text>
-                    <Text style={modalStyles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Gestionnaire3]}</Text>
+                  <View style={styles.buttonContent}>
+                    <Icon name="account-group-outline" size={40} color={colors.tint} />
+                    <Text style={styles.largeButtonLabel}>{t('teamManagement.pack3')}</Text>
+                    <Text style={styles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Gestionnaire3]}</Text>
                   </View>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={modalStyles.dealButton}
+                  style={styles.dealButton}
                   onPress={() => handleKmrsOptionPress(PremiumCommercant.Gestionnaire4Recette, t('teamManagement.pack4'))}
                 >
-                  <TouchableOpacity style={modalStyles.infoIconContainer} onPress={(e: GestureResponderEvent) => handleInfoIconPress(e, t('infosPack4'))}>
+                  <TouchableOpacity style={styles.infoIconContainer} onPress={(e: GestureResponderEvent) => handleInfoIconPress(e, t('infosPack4'))}>
                     <Icon name="information-outline" size={18} color={colors.tint} />
                   </TouchableOpacity>
-                  <View style={modalStyles.buttonContent}>
-                    <Icon name="people-circle-outline" size={40} color={colors.text} />
-                    <Text style={modalStyles.largeButtonLabel}>{t('teamManagement.pack4')}</Text>
-                    <Text style={modalStyles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Gestionnaire4Recette]}</Text>
+                  <View style={styles.buttonContent}>
+                    <Icon name="account-circle-outline" size={40} color={colors.tint} />
+                    <Text style={styles.largeButtonLabel}>{t('teamManagement.pack4')}</Text>
+                    <Text style={styles.buttonPrice}>{PRIX_PREMIUM_COMMERCANT[PremiumCommercant.Gestionnaire4Recette]}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -249,28 +204,26 @@ const PremiumKmrsOffersModal = ({ isVisible, onClose, onUpgradePress }: PremiumO
         )}
 
         {currentView === 'confirmation' && selectedOffer && (
-          <View style={modalStyles.fullScreenOverlay}>
-            <View style={modalStyles.infoModalContainer}>
+          <View style={styles.fullScreenOverlay}>
+            <View style={styles.infoModalContainer}>
               <ScrollView contentContainerStyle={{ padding: 20 }}>
-
-                {/* NOUVEAU HEADER : Chevron à GAUCHE, Titre à DROITE */}
-                <View style={modalStyles.overlayHeader}>
-                  <TouchableOpacity onPress={() => setCurrentView('offers')} style={modalStyles.modalCloseButton}>
-                    <Icon name="chevron-back" size={35} color={colors.text} />
+                <View style={styles.overlayHeader}>
+                  <TouchableOpacity onPress={() => setCurrentView('offers')} style={styles.modalCloseButton}>
+                    <Icon name="chevron-left" size={35} color={colors.textNormal} />
                   </TouchableOpacity>
-                  <Text style={[modalStyles.groupCtaText, { marginBottom: 0, flex: 1 }]}>
+                  <Text style={[styles.groupCtaText, { marginBottom: 0, flex: 1 }]}>
                     {selectedOffer.confirmationTitle}
                   </Text>
                 </View>
 
-                <Text style={modalStyles.generalInfoText}>{selectedOffer.confirmationBody}</Text>
-                {errorStatus && <Text style={[modalStyles.generalInfoText, { color: 'red' }]}>{errorStatus}</Text>}
-                <View style={[modalStyles.buttonGroup, { marginTop: 10 }]}>
-                  <TouchableOpacity style={[modalStyles.dealButton, modalStyles.confirmationButton]} onPress={handleConfirmCashPayment}>
-                    <Text style={[modalStyles.largeButtonLabel, { color: '#fff', fontSize: 16 }]}>{t('general.confirm')}</Text>
+                <Text style={styles.generalInfoText}>{selectedOffer.confirmationBody}</Text>
+                {errorStatus && <Text style={[styles.generalInfoText, { color: 'red' }]}>{errorStatus}</Text>}
+                <View style={[styles.buttonGroup, { marginTop: 10 }]}>
+                  <TouchableOpacity style={[styles.dealButton, styles.confirmationButton]} onPress={handleConfirmCashPayment}>
+                    <Text style={[styles.largeButtonLabel, { color: '#fff', fontSize: 16 }]}>{t('general.confirm')}</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[modalStyles.advantageButton, modalStyles.confirmationButton]} onPress={() => setCurrentView('offers')}>
-                    <Text style={[modalStyles.largeButtonLabel, { color: '#fff', fontSize: 16 }]}>{t('general.cancel')}</Text>
+                  <TouchableOpacity style={[styles.advantageButton, styles.confirmationButton]} onPress={() => setCurrentView('offers')}>
+                    <Text style={[styles.largeButtonLabel, { color: '#fff', fontSize: 16 }]}>{t('general.cancel')}</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -280,15 +233,15 @@ const PremiumKmrsOffersModal = ({ isVisible, onClose, onUpgradePress }: PremiumO
         )}
 
         {isInfoModalVisible && (
-          <View style={modalStyles.fullScreenOverlay} pointerEvents="box-none">
-            <View style={modalStyles.infoModalContainer}>
-              <View style={modalStyles.overlayHeader}>
-                <TouchableOpacity onPress={() => setIsInfoModalVisible(false)} style={modalStyles.modalCloseButton}>
-                  <Icon name="chevron-back" size={35} color={colors.text} />
+          <View style={styles.fullScreenOverlay} pointerEvents="box-none">
+            <View style={styles.infoModalContainer}>
+              <View style={styles.overlayHeader}>
+                <TouchableOpacity onPress={() => setIsInfoModalVisible(false)} style={styles.modalCloseButton}>
+                  <Icon name="chevron-back" size={35} color={colors.textNormal} />
                 </TouchableOpacity>
               </View>
               <ScrollView>
-                <Text style={modalStyles.infoModalText}>
+                <Text style={styles.infoModalText}>
                   {infoModalContent}
                 </Text>
               </ScrollView>
@@ -300,7 +253,7 @@ const PremiumKmrsOffersModal = ({ isVisible, onClose, onUpgradePress }: PremiumO
   );
 };
 
-const getModalStyles = (theme: 'light' | 'dark') => {
+const getStyles = (theme: 'light' | 'dark') => {
   const colors = Colors[theme];
   return StyleSheet.create({
     confirmationButton: {
@@ -315,7 +268,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
       borderRadius: 10,
       paddingTop: 35,
       marginTop: 0,
-      shadowColor: colors.icon,
+      shadowColor: colors.noir,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 4,
@@ -324,7 +277,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     },
     infoModalText: {
       fontSize: 16,
-      color: colors.text,
+      color: colors.txtDghn,
       textAlign: 'left',
       marginBottom: 30,
       marginLeft: 25,
@@ -338,7 +291,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     },
     fullScreenOverlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: colors.greyDes,
     },
     premiumModalView: {
       flex: 1,
@@ -358,13 +311,12 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     modalCloseButton: {
       left: 5,
       padding: 2,
-      marginBottom: 10,
       marginRight: 20,
     },
     modalTitle: {
       fontSize: 22,
       fontWeight: 'bold',
-      color: colors.text,
+      color: colors.textNormal,
       textAlign: 'left',
       flex: 1,
     },
@@ -373,7 +325,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     },
     generalInfoText: {
       fontSize: 16,
-      color: colors.text,
+      color: colors.textNormal,
       marginBottom: 20,
       textAlign: 'left',
       lineHeight: 20,
@@ -381,7 +333,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     groupCtaText: {
       fontSize: 17,
       fontWeight: '700',
-      color: colors.text,
+      color: colors.textNormal,
       textAlign: 'center',
       marginTop: 10,
       marginBottom: 15,
@@ -398,18 +350,23 @@ const getModalStyles = (theme: 'light' | 'dark') => {
       marginBottom: 20,
     },
     advantageButton: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.greyDes,
       flex: 1,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 0,
+      shadowColor: colors.noir,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 4,
+      elevation: 5,
     },
     buttonContent: {
       alignItems: 'center',
       justifyContent: 'center',
     },
     largeButtonLabel: {
-      color: colors.text,
+      color: colors.textNormal,
       fontSize: 18,
       fontWeight: '800',
       textAlign: 'center',
@@ -444,13 +401,13 @@ const getModalStyles = (theme: 'light' | 'dark') => {
       justifyContent: 'center',
       height: 170,
       position: 'relative',
-      shadowColor: colors.icon,
+      shadowColor: colors.noir,
       shadowOffset: { width: 0, height: 10 },
       shadowOpacity: 0.07,
       shadowRadius: 15,
       elevation: 5,
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.tint,
     },
   });
 };

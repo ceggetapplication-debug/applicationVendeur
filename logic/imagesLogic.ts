@@ -75,6 +75,8 @@ export function sizes() {
     AVATAR: 60,
     GROUP: Math.min(220, Math.round(W * 0.5)),
     LOGO: 70,
+    CATEGORY_W: 40,
+    CATEGORY_H: 40,
   };
 }
 

@@ -17,16 +17,16 @@ const tabs = [
     { id: 'tab.profile', icon: 'person-outline', activeIcon: 'person' },
 ] as const;
 
-const colorScheme = useColorScheme();
-const theme = colorScheme === 'dark' ? 'dark' : 'light';
-const colors = Colors[theme];
-
 const BarreNavigation = ({
     activeTab: activeTabProp = 'tab.myStore',
     onTabPress,
     allowedTabs,
 }: BarreNavigationProps) => {
     const [internalTab, setInternalTab] = useState(activeTabProp);
+    const colorScheme = useColorScheme();
+    const theme = colorScheme === 'dark' ? 'dark' : 'light';
+    const styles = getStyles(theme);
+    const colors = Colors[theme];
     const activeTab = onTabPress ? activeTabProp : internalTab;
 
     const handlePress = (id: string) => {
@@ -49,7 +49,7 @@ const BarreNavigation = ({
                         <Ionicons
                             name={(activeTab === tab.id ? tab.activeIcon : tab.icon) as keyof typeof Ionicons.glyphMap}
                             size={24}
-                            color={activeTab === tab.id ? '#78290f' : '#001524'}
+                            color={activeTab === tab.id ? colors.ranjou : colors.blou}
                         />
                     </TouchableOpacity>
                     {index < visibleTabs.length - 1 && <View style={styles.separator} />}
@@ -69,7 +69,7 @@ const getStyles = (theme: 'light' | 'dark') => {
             right: 0,
             width: '100%',
             height: 50,
-            backgroundColor: 'rgba(255, 236, 209, 0.6)',
+            backgroundColor: colors.surface,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-around',
@@ -77,7 +77,7 @@ const getStyles = (theme: 'light' | 'dark') => {
             overflow: 'hidden',
             borderWidth: 0,
             elevation: 8,
-            shadowColor: '#000',
+            shadowColor: colors.noir,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.1,
             shadowRadius: 8,
@@ -91,7 +91,7 @@ const getStyles = (theme: 'light' | 'dark') => {
         separator: {
             width: 1,
             height: 20,
-            backgroundColor: '#313630',
+            backgroundColor: colors.noir,
         },
     });
 };

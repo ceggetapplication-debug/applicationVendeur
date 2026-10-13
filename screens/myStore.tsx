@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, FlatList, Platform, ActivityIndicator, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, router, useLocalSearchParams } from 'expo-router';
-import { Colors } from '../appSellerColors';
+import { useRouter } from 'expo-router';
+import { Colors } from '../constants/Colors';
 import { useAppTranslation } from '../translations/data/translationCentralization';
-import { getHomeGroupes } from '../logic/homeDatat';
+import { getHomeGroupes, Group, StoreType as StoreTypeData, ProductType as RawProductType } from '../logic/homeDatat';
 import ProductModal from '../modals/productModal';
-import { databases, account, config, Query, Models, ID } from '../logic/appwriteConfig';
-import { ProductType as RawProductType, Group, StoreType as StoreTypeData } from '../modals/modalMagasinInfos';
-import { deleteFromR2, deleteProductPhoto, setProductPhoto, buildProductPhoto, uploadToR2, r2Config } from '../logic/imagesLogic';
+import { databases, account, config, Query, Models, ID, r2Config } from '../logic/appwriteConfig';
+import { deleteFromR2, deleteProductPhoto, setProductPhoto, buildProductPhoto, uploadToR2, getCategoryPhoto, sizes } from '../logic/imagesLogic';
 
 enum StoreType {
   fastFood = 'fastFood',
@@ -392,9 +391,6 @@ export default function MyStoreScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={28} color={colors.green} />
-        </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('tab.myStore')}</Text>
         <TouchableOpacity onPress={() => { setProductToEdit(null); setIsModalVisible(true); }}>
           <Ionicons name="add-circle-outline" size={30} color={colors.tint} />
@@ -405,10 +401,16 @@ export default function MyStoreScreen() {
           {categories.map((cat: Category) => (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.categoryButton, selectedCategoryId === cat.id && styles.selectedCategoryButton]}
+              style={[styles.categoryCard, selectedCategoryId === cat.id && styles.selectedCategoryCard]}
               onPress={() => setSelectedCategoryId(cat.id)}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.categoryButtonText, selectedCategoryId === cat.id && styles.selectedCategoryButtonText]}>
+              <Image
+                source={getCategoryPhoto(cat.id)}
+                style={styles.categoryIconImage}
+                resizeMode="contain"
+              />
+              <Text style={[styles.categoryButtonText, selectedCategoryId === cat.id && styles.selectedCategoryButtonText]} numberOfLines={1}>
                 {cat.name}
               </Text>
             </TouchableOpacity>
@@ -448,31 +450,45 @@ const getStyles = (theme: 'light' | 'dark') => {
       backgroundColor: colors.background,
     },
     categorysScroll: {
-      maxHeight: 50,
+      backgroundColor: colors.surface,
+      borderRadius: 6,
+      paddingVertical: 2,
+      paddingHorizontal: 2,
       marginBottom: 10,
     },
-    categoryButton: {
-      paddingVertical: 8,
-      paddingHorizontal: 15,
-      borderRadius: 20,
-      backgroundColor: colors.surface,
-      marginRight: 10,
-      justifyContent: 'center',
+    categoryCard: {
       alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 2,
+      paddingHorizontal: 2,
+      borderRadius: 2,
+      backgroundColor: 'surface',
+      marginRight: 3,
+      borderWidth: 1.5,
+      borderColor: 'transparent',
     },
-    selectedCategoryButton: {
-      backgroundColor: colors.tint,
+    selectedCategoryCard: {
+      backgroundColor: colors.ranjou,
+      borderColor: colors.ranjou,
+    },
+    categoryIconImage: {
+      width: sizes().CATEGORY_W,
+      height: sizes().CATEGORY_H,
+      marginBottom: 4,
     },
     categoryButtonText: {
-      color: colors.text,
+      color: colors.textNormal,
+      fontSize: 12,
+      fontWeight: '600',
+      textAlign: 'center',
     },
     selectedCategoryButtonText: {
-      color: colors.textNormal,
+      color: colors.ranjou,
       fontWeight: 'bold',
     },
     productsContainer: {
       flex: 1,
-      marginTop: 40,
+      marginTop: 4,
     },
     emptyListContainer: {
       flex: 1,
@@ -486,13 +502,13 @@ const getStyles = (theme: 'light' | 'dark') => {
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingHorizontal: 10,
-      marginTop: 40,
-      marginBottom: 20,
+      marginTop: 10,
     },
     headerTitle: {
       fontSize: 22,
       fontWeight: 'bold',
-      color: colors.text,
+      color: colors.textNormal,
+      alignSelf: 'flex-start'
     },
   });
 };
@@ -522,7 +538,7 @@ const getProductStyles = (theme: 'light' | 'dark') => {
       fontSize: 16,
       fontWeight: 'bold',
       marginBottom: 4,
-      color: colors.text,
+      color: colors.textNormal,
     },
     price: {
       fontSize: 14,
@@ -537,7 +553,7 @@ const getProductStyles = (theme: 'light' | 'dark') => {
     menuButton: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: colors.icon,
+      color: colors.green,
       paddingHorizontal: 5,
     },
   });
@@ -553,7 +569,7 @@ const getProductTypeSectionStyles = (theme: 'light' | 'dark') => {
       fontSize: 18,
       fontWeight: 'bold',
       marginBottom: 10,
-      color: colors.text,
+      color: colors.textNormal,
       paddingLeft: 5,
     },
     addProductButtonCard: {

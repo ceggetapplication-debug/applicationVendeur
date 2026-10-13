@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, useColorScheme } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Linking from 'expo-linking';
+import { Colors } from '../constants/Colors';
 import { useAppTranslation } from '../translations/data/translationCentralization';
+import { account, sendPasswordResetEmailWithFallback } from '../logic/appwriteConfig';
 
 const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
   const { t } = useAppTranslation();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? 'dark' : 'light';
+  const styles = getStyles(theme);
+  const colors = Colors[theme];
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [invalidEmail, setInvalidEmail] = useState(false);
@@ -16,25 +22,45 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [passwordChanged, setPasswordChanged] = useState(false);
+  const [userId, setUserId] = useState('');
+  const [secret, setSecret] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const handleDeepLink = (event: { url: string }) => {
-      if (event.url.includes('reset-password')) {
-        setResetMode(true);
+    const processUrl = (url: string) => {
+      if (url && url.includes('reset-password')) {
+        const parsed = Linking.parse(url);
+        const uId = (parsed.queryParams?.userId as string) || '';
+        const sec = (parsed.queryParams?.secret as string) || '';
+        if (uId && sec) {
+          setUserId(uId);
+          setSecret(sec);
+          setResetMode(true);
+        }
       }
     };
-    const subscription = Linking.addEventListener('url', handleDeepLink);
+    Linking.getInitialURL().then((url: string | null) => { if (url) processUrl(url); });
+    const subscription = Linking.addEventListener('url', (e: { url: string }) => processUrl(e.url));
     return () => subscription.remove();
   }, []);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (email === '') return;
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     if (!emailValid) {
       setInvalidEmail(true);
       return;
     }
-    setSent(true);
+    try {
+      setIsLoading(true);
+      const redirectUrl = Linking.createURL('reset-password');
+      await sendPasswordResetEmailWithFallback(email, redirectUrl);
+      setSent(true);
+    } catch (error) {
+      setInvalidEmail(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const validatePassword = (pwd: string): string[] => {
@@ -47,7 +73,7 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
     return errors;
   };
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
     const errors = validatePassword(newPassword);
     if (errors.length > 0) {
       setPasswordErrors(errors);
@@ -57,7 +83,15 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
       setPasswordErrors([t('password/mismatch')]);
       return;
     }
-    setPasswordChanged(true);
+    try {
+      setIsLoading(true);
+      await account.updateRecovery(userId, secret, newPassword, confirmPassword);
+      setPasswordChanged(true);
+    } catch (error) {
+      setPasswordErrors([t('genericError')]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,11 +100,9 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
         <View style={styles.container}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="chevron-back" size={24} color="#15616d" />
+              <Ionicons name="chevron-back" size={24} color={colors.textNormal} />
             </TouchableOpacity>
-            <Text style={styles.title}>
-              <Text style={styles.title}>{t('resetPassword')}</Text>
-            </Text>
+            <Text style={styles.title}>{t('resetPassword')}</Text>
           </View>
 
           {resetMode ? (
@@ -80,28 +112,28 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="**********"
-                  placeholderTextColor="#313638"
+                  placeholderTextColor={colors.noir}
                   value={newPassword}
                   onChangeText={(text: string) => { setNewPassword(text); setPasswordErrors([]); }}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity onPress={() => setShowPassword((prev: boolean) => !prev)} style={styles.eyeButton}>
-                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#001524" />
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.blou} />
                 </TouchableOpacity>
               </View>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="**********"
-                  placeholderTextColor="#313638"
+                  placeholderTextColor={colors.noir}
                   value={confirmPassword}
                   onChangeText={(text: string) => { setConfirmPassword(text); setPasswordErrors([]); }}
                   secureTextEntry={!showConfirm}
                   autoCapitalize="none"
                 />
                 <TouchableOpacity onPress={() => setShowConfirm((prev: boolean) => !prev)} style={styles.eyeButton}>
-                  <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={22} color="#001524" />
+                  <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.blou} />
                 </TouchableOpacity>
               </View>
               {passwordErrors.map((err: string, i: number) => (
@@ -117,7 +149,7 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
               <TextInput
                 style={styles.input}
                 placeholder={t('emailPlaceholder')}
-                placeholderTextColor="#313638"
+                placeholderTextColor={colors.noir}
                 value={email}
                 onChangeText={(text: string) => { setEmail(text); setInvalidEmail(false); }}
                 keyboardType="email-address"
@@ -139,95 +171,97 @@ const ForgotPasswordModal = ({ visible, onClose }: { visible: boolean; onClose: 
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  container: {
-    width: '85%',
-    backgroundColor: '#fafafa',
-    borderRadius: 10,
-    padding: 24,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#15616d',
-    alignSelf: 'center',
-    marginBottom: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#001524',
-    marginBottom: 6,
-    marginTop: 10,
-  },
-  input: {
-    backgroundColor: '#f0f0f0',
-    borderWidth: 2,
-    borderColor: '#15616d',
-    borderRadius: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#000',
-  },
-  button: {
-    backgroundColor: '#15616d',
-    borderRadius: 5,
-    paddingVertical: 12,
-    alignSelf: 'center',
-    marginTop: 15,
-    width: '50%',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    alignSelf: 'center',
-  },
-  confirmText: {
-    color: '#000',
-    fontSize: 16,
-    textAlign: 'center',
-    marginVertical: 20,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    gap: 10,
-  },
-  errorText: {
-    color: '#ff7d00',
-    fontSize: 14,
-    fontWeight: 600,
-    marginTop: 4,
-    alignSelf: 'center',
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fafafa',
-    borderWidth: 2,
-    borderColor: '#15616d',
-    borderRadius: 5,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#000',
-  },
-  eyeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-  },
-});
+const getStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: 'transparent',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    container: {
+      width: '85%',
+      backgroundColor: colors.background,
+      borderRadius: 10,
+      padding: 24,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.textNormal,
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: '500',
+      color: colors.textNormal,
+      marginBottom: 6,
+      marginTop: 10,
+    },
+    input: {
+      backgroundColor: colors.surface,
+      borderWidth: 2,
+      borderColor: colors.tint,
+      borderRadius: 5,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: colors.noir,
+    },
+    button: {
+      backgroundColor: colors.tint,
+      borderRadius: 5,
+      paddingVertical: 12,
+      alignSelf: 'center',
+      marginTop: 15,
+      width: 'auto',
+      paddingHorizontal: 10,
+    },
+    buttonText: {
+      color: colors.blond,
+      fontSize: 16,
+      fontWeight: '600',
+      alignSelf: 'center',
+    },
+    confirmText: {
+      color: colors.textNormal,
+      fontSize: 16,
+      textAlign: 'center',
+      marginVertical: 20,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+      gap: 10,
+    },
+    errorText: {
+      color: colors.errorText,
+      fontSize: 14,
+      fontWeight: 600,
+      marginTop: 4,
+      alignSelf: 'center',
+    },
+    passwordContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 2,
+      borderColor: colors.tint,
+      borderRadius: 5,
+    },
+    passwordInput: {
+      flex: 1,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 15,
+      color: colors.noir,
+    },
+    eyeButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+    },
+  });
+};
 
 export default ForgotPasswordModal;

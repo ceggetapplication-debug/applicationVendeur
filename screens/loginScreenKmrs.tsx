@@ -7,13 +7,14 @@ import { useRouter } from 'expo-router';
 import { AppwriteException } from 'react-native-appwrite';
 import { getAppLogo } from '../logic/imagesLogic';
 import { useAppTranslation } from '../translations/data/translationCentralization';
-import { Colors } from '../appSellerColors';
+import { Colors } from '../constants/Colors';
 
 const LoginScreen = () => {
   const { t, currentLang, setLanguage } = useAppTranslation();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
   const styles = getStyles(theme);
+  const colors = Colors[theme];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +22,6 @@ const LoginScreen = () => {
   const [wrongPassword, setWrongPassword] = useState(false);
   const [accountNotFound, setAccountNotFound] = useState(false);
   const [userDisabled, setUserDisabled] = useState(false);
-
   const [showResetModal, setShowResetModal] = useState(false);
 
   const router = useRouter();
@@ -71,7 +71,7 @@ const LoginScreen = () => {
           />
         </View>
         <TouchableOpacity onPress={toggleLang} style={styles.langButton}>
-          <Ionicons name="globe-outline" size={18} color={Colors[theme].tint} />
+          <Ionicons name="globe-outline" size={18} color={colors.tint} />
           <Text style={styles.langButtonText}>
             {currentLang === 'kab' ? 'Taqvaylit' : 'Français'}
           </Text>
@@ -83,11 +83,11 @@ const LoginScreen = () => {
           <>
             <Text style={styles.label}>{t('email')}</Text>
             <View style={styles.inputGroup}>
-              <Ionicons name="mail-outline" size={20} color={Colors[theme].icon} style={styles.inputIcon} />
+              <Ionicons name="mail-outline" size={20} color={colors.icon} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder={t('emailPlaceholder')}
-                placeholderTextColor={Colors[theme].greyDes}
+                placeholderTextColor={colors.greyDes}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -99,18 +99,18 @@ const LoginScreen = () => {
             )}
             <Text style={styles.label}>{t('password')}</Text>
             <View style={styles.inputGroup}>
-              <Ionicons name="lock-closed-outline" size={20} color={Colors[theme].icon} style={styles.inputIcon} />
+              <Ionicons name="lock-closed-outline" size={20} color={colors.icon} style={styles.inputIcon} />
               <TextInput
                 style={styles.passwordInput}
                 placeholder='**********'
-                placeholderTextColor={Colors[theme].greyDes}
+                placeholderTextColor={colors.greyDes}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
               <TouchableOpacity onPress={() => setShowPassword((prev: boolean) => !prev)} style={styles.eyeButton}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors[theme].icon} />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={colors.icon} />
               </TouchableOpacity>
             </View>
             {wrongPassword && (
@@ -154,154 +154,157 @@ const LoginScreen = () => {
   );
 };
 
-const getStyles = (theme: 'light' | 'dark') => StyleSheet.create({
-  background: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors[theme].green,
-    opacity: 1,
-  },
-  safeArea: {
-    flex: 1,
-    backgroundColor: Colors[theme].background,
-  },
-  topBar: {
-    alignItems: 'center',
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-    backgroundColor: Colors[theme].background,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  langButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 18,
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 999,
-    backgroundColor: Colors[theme].accent,
-  },
-  langButtonText: {
-    color: Colors[theme].tint,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-    backgroundColor: Colors[theme].green,
-    borderTopLeftRadius: 36,
-    borderTopRightRadius: 36,
-    paddingHorizontal: 26,
-    paddingTop: 40,
-    paddingBottom: 40,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '600',
-    alignSelf: 'center',
-    color: Colors[theme].accent,
-    marginBottom: 30,
-    textAlign: 'center',
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: Colors[theme].textNormal,
-    marginBottom: 6,
-    marginTop: 16,
-  },
-  input: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: Colors[theme].greyDes,
-  },
-  inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors[theme].background,
-    borderWidth: 2,
-    borderColor: Colors[theme].tint,
-    borderRadius: 999,
-    paddingHorizontal: 20,
-  },
-  inputIcon: {
-    flexShrink: 0,
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: Colors[theme].textNormal,
-  },
-  eyeButton: {
-    paddingHorizontal: 4,
-    paddingVertical: 12,
-  },
-  loginButton: {
-    backgroundColor: Colors[theme].tint,
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignSelf: 'stretch',
-    marginTop: 34,
-    alignItems: 'center',
-    width: '30%',
-  },
-  loginButtonText: {
-    color: Colors[theme].accent,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  footerLinkContaineroub: {
-    flexDirection: 'row',
-    alignSelf: 'center',
-    gap: 6,
-    borderBottomWidth: 2,
-    borderBottomColor: Colors[theme].green,
-    maxWidth: '60%',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  footerLink: {
-    fontSize: 16,
-    color: Colors[theme].textNormal,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  notFoundText: {
-    color: Colors[theme].textNormal,
-    fontSize: 18,
-    fontWeight: '600',
-    alignSelf: 'center',
-    marginBottom: 30,
-    marginTop: 40,
-  },
-  errorText: {
-    color: '#FF9E80',
-    fontSize: 15,
-    fontWeight: '600',
-    alignSelf: 'center',
-    marginTop: 12,
-  },
-  registerButton: {
-    borderRadius: 5,
-    paddingVertical: 12,
-    alignSelf: 'center',
-    marginTop: 10,
-    width: '30%',
-    borderWidth: 2,
-  },
-  registerButtonText: {
-    color: Colors[theme].accent,
-    fontSize: 16,
-    fontWeight: '700',
-    alignSelf: 'center',
-  },
-});
+const getStyles = (theme: 'light' | 'dark') => {
+  const colors = Colors[theme];
+  return StyleSheet.create({
+    background: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: colors.green,
+      opacity: 1,
+    },
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    topBar: {
+      alignItems: 'center',
+      paddingTop: 50,
+      paddingBottom: 30,
+      paddingHorizontal: 20,
+      backgroundColor: colors.background,
+    },
+    logoContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    langButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 18,
+      paddingVertical: 15,
+      paddingHorizontal: 20,
+      borderRadius: 999,
+      backgroundColor: colors.accent,
+    },
+    langButtonText: {
+      color: colors.tint,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    content: {
+      flex: 1,
+      backgroundColor: colors.green,
+      borderTopLeftRadius: 36,
+      borderTopRightRadius: 36,
+      paddingHorizontal: 26,
+      paddingTop: 40,
+      paddingBottom: 40,
+    },
+    title: {
+      fontSize: 26,
+      fontWeight: '600',
+      alignSelf: 'center',
+      color: colors.accent,
+      marginBottom: 30,
+      textAlign: 'center',
+    },
+    label: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textNormal,
+      marginBottom: 6,
+      marginTop: 16,
+    },
+    input: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 15,
+      color: colors.greyDes,
+    },
+    inputGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.background,
+      borderWidth: 2,
+      borderColor: colors.tint,
+      borderRadius: 999,
+      paddingHorizontal: 20,
+    },
+    inputIcon: {
+      flexShrink: 0,
+    },
+    passwordInput: {
+      flex: 1,
+      paddingVertical: 14,
+      fontSize: 15,
+      color: colors.textNormal,
+    },
+    eyeButton: {
+      paddingHorizontal: 4,
+      paddingVertical: 12,
+    },
+    loginButton: {
+      backgroundColor: colors.ranjou,
+      borderRadius: 16,
+      paddingVertical: 16,
+      alignSelf: 'center',
+      marginTop: 34,
+      alignItems: 'center',
+      width: '30%',
+    },
+    loginButtonText: {
+      color: colors.blond,
+      fontSize: 16,
+      fontWeight: '700',
+    },
+    footerLinkContaineroub: {
+      flexDirection: 'row',
+      alignSelf: 'center',
+      gap: 6,
+      borderBottomWidth: 2,
+      borderBottomColor: colors.green,
+      maxWidth: '60%',
+      marginTop: 20,
+      marginBottom: 10,
+    },
+    footerLink: {
+      fontSize: 16,
+      color: colors.textNormal,
+      fontWeight: '600',
+      textDecorationLine: 'underline',
+    },
+    notFoundText: {
+      color: colors.errorText,
+      fontSize: 18,
+      fontWeight: '600',
+      alignSelf: 'center',
+      marginBottom: 30,
+      marginTop: 40,
+    },
+    errorText: {
+      color: colors.errorText,
+      fontSize: 15,
+      fontWeight: '600',
+      alignSelf: 'center',
+      marginTop: 12,
+    },
+    registerButton: {
+      borderRadius: 5,
+      paddingVertical: 12,
+      alignSelf: 'center',
+      marginTop: 10,
+      width: 'auto',
+
+    },
+    registerButtonText: {
+      color: colors.blond,
+      fontSize: 16,
+      fontWeight: '700',
+      alignSelf: 'center',
+    },
+  });
+};
 
 export default LoginScreen;

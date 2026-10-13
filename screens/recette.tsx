@@ -2,9 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { calculateCeggetGain, COMMERCE_PERCENTAGES, applyMultipleOf5, CommerceType, generateWeeklyViewsData, DeliveryMode, Order, StoreOrder, OrderItem, StoreGain, CeggetGainResult, WeeklyViewsRow } from '../logic/gainSellerLogic';
 import { account, databases, config, Query } from '@/app/(main)/calculation-logic/appwriteConfig';
 import { Models } from 'react-native-appwrite';
-import { router, useLocalSearchParams } from 'expo-router';
-import { Text, View, StyleSheet, ScrollView, Alert, useColorScheme } from 'react-native';
-import { Colors } from '../appSellerColors';
+import { Text, View, StyleSheet, ScrollView, useColorScheme } from 'react-native';
+import { Colors } from '../constants/Colors';
 import { useAppTranslation } from '../translations/data/translationCentralization';
 
 interface StoreDocument extends Models.Document {

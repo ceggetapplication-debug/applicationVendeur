@@ -10,14 +10,14 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cegget.ceggettah"
+      "bundleIdentifier": "com.cegget.seller"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logAppKMRS.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.cegget.ceggettah"
+      "package": "com.cegget.seller"
     },
     "web": {
       "bundler": "metro",

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Text, View, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, TextInput, Modal, Keyboard, useColorScheme } from 'react-native';
-import { Colors } from '../appSellerColors';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Colors } from '../constants/Colors';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { setProductPhoto } from '../logic/imagesLogic';
 import { ID } from '../logic/appwriteConfig';
@@ -37,11 +38,8 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? 'dark' : 'light';
   const colors = Colors[theme];
-  const modalStyles = getModalStyles(theme);
+  const modalStyles = getStyles(theme);
 
-  const PLACEHOLDER_COLOR = colors.greyDes;
-  const THEME_COLOR = colors.green;
-  const ACTIVE_TEXT_COLOR = colors.text;
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [quantityValue, setQuantityValue] = useState('');
@@ -195,7 +193,7 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
               <TextInput
                 style={modalStyles.input}
                 placeholder={t('lookingForProd')}
-                placeholderTextColor={PLACEHOLDER_COLOR}
+                placeholderTextColor={colors.noir}
                 value={name}
                 onChangeText={(text: string) => {
                   isSelectingRef.current = false;
@@ -215,7 +213,7 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
                   keyboardShouldPersistTaps="handled"
                   nestedScrollEnabled={true}
                 >
-                  {productSuggestions.map((item, index) => (
+                  {productSuggestions.map((item: { productNameKey: string; translatedName: string }, index: number) => (
                     <TouchableOpacity
                       key={String(item.productNameKey) + index}
                       style={modalStyles.suggestionItem}
@@ -232,7 +230,7 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
             <TextInput
               style={modalStyles.input}
               placeholder="..."
-              placeholderTextColor={PLACEHOLDER_COLOR}
+              placeholderTextColor={colors.noir}
               value={brand}
               onChangeText={setBrand}
             />
@@ -240,27 +238,26 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
             <Text style={modalStyles.label}>{t('productDetails')}</Text>
 
             <View style={modalStyles.container100}>
-              <Text style={modalStyles.label}>Français</Text>
-              <TextInput
-                style={modalStyles.textArea}
-                placeholder="..."
-                placeholderTextColor={PLACEHOLDER_COLOR}
-                value={descFr}
-                onChangeText={(text: string) => {
-                  setDescFr(blockArabicInput(text));
-                  setDetailsConfirmed(false);
-                }}
-                multiline
-              />
-
               <Text style={modalStyles.label}>Taqvaylit</Text>
               <TextInput
                 style={modalStyles.textArea}
                 placeholder="..."
-                placeholderTextColor={PLACEHOLDER_COLOR}
+                placeholderTextColor={colors.noir}
                 value={descKab}
                 onChangeText={(text: string) => {
                   setDescKab(blockArabicInput(text));
+                  setDetailsConfirmed(false);
+                }}
+                multiline
+              />
+              <Text style={modalStyles.label}>Français</Text>
+              <TextInput
+                style={modalStyles.textArea}
+                placeholder="..."
+                placeholderTextColor={colors.noir}
+                value={descFr}
+                onChangeText={(text: string) => {
+                  setDescFr(blockArabicInput(text));
                   setDetailsConfirmed(false);
                 }}
                 multiline
@@ -287,7 +284,7 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
               <TextInput
                 style={modalStyles.inputVal}
                 placeholder={t('valeur_label')}
-                placeholderTextColor={PLACEHOLDER_COLOR}
+                placeholderTextColor={colors.noir}
                 value={quantityValue}
                 onChangeText={setQuantityValue}
                 keyboardType="numeric"
@@ -299,10 +296,10 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
                   style={modalStyles.inputUnit}
                   onPress={() => setShowUnitList(!showUnitList)}
                 >
-                  <Text style={{ color: (quantityUnit === '' || quantityUnit === ' ') ? PLACEHOLDER_COLOR : ACTIVE_TEXT_COLOR }}>
+                  <Text style={{ color: colors.noir }}>
                     {(!quantityUnit || quantityUnit === ' ') ? t('unit_label') : quantityUnit}
                   </Text>
-                  <Text style={modalStyles.dropdownArrow}>▼</Text>
+                  <Ionicons name="chevron-down" size={16} color={colors.tint} />
                 </TouchableOpacity>
 
                 {showUnitList && (
@@ -315,7 +312,7 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
                           onPress={() => { setQuantityUnit(u); setShowUnitList(false); }}
                         >
                           <Text style={{
-                            color: quantityUnit === u ? THEME_COLOR : ACTIVE_TEXT_COLOR,
+                            color: colors.noir,
                             fontWeight: quantityUnit === u ? 'bold' : 'normal'
                           }}>
                             {(u === ' ') ? t('unit_label') : u}
@@ -332,7 +329,7 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
               <>
                 <Text style={modalStyles.label}>{t('promo.ancienPrix')}</Text>
                 <TextInput
-                  style={[modalStyles.input, modalStyles.disabledInput]}
+                  style={[modalStyles.noir, modalStyles.disabledInput]}
                   value={`${productToEdit.price.toFixed(2)} DZD`}
                   editable={false}
                 />
@@ -347,15 +344,17 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
             <TextInput
               style={modalStyles.input}
               placeholder="0.00"
-              placeholderTextColor={PLACEHOLDER_COLOR}
+              placeholderTextColor={colors.noir}
               value={price}
               onChangeText={setPrice}
               keyboardType="numeric"
             />
 
-            <TouchableOpacity style={modalStyles.imagePickerButton} onPress={pickImage}>
-              <Text style={modalStyles.imagePickerButtonText}>{t('importPhotoBtn')}</Text>
-            </TouchableOpacity>
+            <View style={modalStyles.container100}>
+              <TouchableOpacity style={modalStyles.imagePickerButton} onPress={pickImage}>
+                <Text style={modalStyles.imagePickerButtonText}>{t('importPhotoBtn')}</Text>
+              </TouchableOpacity>
+            </View>
 
             {selectedImageUri && (
               <View style={modalStyles.imagePreviewContainer}>
@@ -388,14 +387,14 @@ const AddProductModal = ({ isVisible, onClose, onSave, productTypes, productToEd
   );
 };
 
-const getModalStyles = (theme: 'light' | 'dark') => {
+const getStyles = (theme: 'light' | 'dark') => {
   const colors = Colors[theme];
   return StyleSheet.create({
     centeredView: {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: colors.noir,
     },
     modalView: {
       width: '90%',
@@ -408,44 +407,45 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     modalTitle: {
       fontSize: 20,
       fontWeight: 'bold',
-      color: colors.green,
+      color: colors.text,
       textAlign: 'center',
       marginBottom: 15,
     },
     label: {
       fontSize: 14,
       fontWeight: 'bold',
-      color: colors.text,
+      color: colors.textu,
       marginTop: 10,
       marginBottom: 5,
     },
     input: {
-      borderWidth: 1,
-      borderColor: colors.surface,
+      borderWidth: 2,
+      borderColor: colors.tint,
       borderRadius: 8,
       padding: 10,
       fontSize: 16,
-      color: colors.text,
+      color: colors.noir,
       backgroundColor: colors.surface,
     },
     textArea: {
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.tint,
       borderRadius: 8,
       padding: 10,
       fontSize: 16,
       minHeight: 80,
       textAlignVertical: 'top',
-      color: colors.text,
+      color: colors.noir,
       backgroundColor: colors.surface,
     },
     container100: {
       width: '100%',
+      alignItems: 'center',
     },
     suggestionList: {
       maxHeight: 150,
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.tint,
       borderRadius: 8,
       marginTop: 5,
       backgroundColor: colors.surface,
@@ -453,26 +453,26 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     suggestionItem: {
       padding: 10,
       borderBottomWidth: 1,
-      borderBottomColor: colors.background,
+      borderBottomColor: colors.tint,
     },
     suggestionText: {
       fontSize: 16,
-      color: colors.text,
+      color: colors.noir,
     },
     qtyRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'space-around',
       alignItems: 'center',
       marginTop: 10,
     },
     inputVal: {
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.tint,
       borderRadius: 8,
       padding: 10,
       fontSize: 16,
       width: '55%',
-      color: colors.text,
+      color: colors.noir,
       backgroundColor: colors.surface,
     },
     unitContainer: {
@@ -480,11 +480,11 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     },
     inputUnit: {
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.tint,
       borderRadius: 8,
       padding: 10,
       flexDirection: 'row',
-      justifyContent: 'space-between',
+      justifyContent: 'space-around',
       alignItems: 'center',
       backgroundColor: colors.surface,
     },
@@ -499,7 +499,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
       right: 0,
       backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.tint,
       borderRadius: 8,
       zIndex: 1000,
       maxHeight: 200,
@@ -507,7 +507,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     optionItem: {
       padding: 12,
       borderBottomWidth: 1,
-      borderBottomColor: colors.background,
+      borderBottomColor: colors.tint,
     },
     optionActive: {
       backgroundColor: colors.accent,
@@ -518,9 +518,12 @@ const getModalStyles = (theme: 'light' | 'dark') => {
       borderRadius: 8,
       alignItems: 'center',
       marginTop: 15,
+      width: 'auto',
+      paddingHorizontal: 15,
+      alignSelf: 'center',
     },
     imagePickerButtonText: {
-      color: colors.textNormal,
+      color: colors.blond,
       fontWeight: 'bold',
       fontSize: 16,
     },
@@ -530,7 +533,7 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     },
     imageBorder: {
       borderWidth: 1,
-      borderColor: colors.surface,
+      borderColor: colors.green,
       borderRadius: 10,
       overflow: 'hidden',
     },
@@ -540,28 +543,31 @@ const getModalStyles = (theme: 'light' | 'dark') => {
     },
     imageChangeButton: {
       marginTop: 10,
-      backgroundColor: colors.greyDes,
+      backgroundColor: colors.tint,
     },
     disabledInput: {
       backgroundColor: colors.surface,
-      color: colors.greyDes,
+      color: colors.tint,
     },
     cancelButton: {
-      backgroundColor: colors.tint,
+      backgroundColor: colors.ranjou,
+      backgroundOpacity: 0.7,
       padding: 12,
       borderRadius: 8,
-      width: '45%',
+      width: 'auto',
       alignItems: 'center',
+      paddingHorizontal: 15,
     },
     actionButton: {
       backgroundColor: colors.green,
       padding: 12,
       borderRadius: 8,
-      width: '45%',
+      width: 'auto',
       alignItems: 'center',
+      paddingHorizontal: 15,
     },
     actionButtonText: {
-      color: colors.textNormal,
+      color: colors.blond,
       fontWeight: 'bold',
       fontSize: 16,
     },
