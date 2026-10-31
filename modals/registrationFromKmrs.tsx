@@ -9,6 +9,7 @@ import { useAppTranslation } from '../translations/data/translationCentralizatio
 import { blockArabicInput } from '../translations/data/blockerArab';
 import { uploadToR2 } from '../logic/imagesLogic';
 import { Colors } from '../constants/Colors';
+import { TermsModal } from '../modals/termsCondiKmrs';
 import { COMMERCE_PERCENTAGES } from '../logic/gainSellerLogic';
 import { DAIRAS_CONFIG, DEFAULT_ACTIVE_DAIRAS } from '../logic/calLivDaira';
 import { useAgePhoneValidation, useTimeValidation } from '../logic/verifAgeNum';
@@ -74,6 +75,7 @@ const RegistrationForm: React.FC = () => {
   const [tempSelectedLocation, setTempSelectedLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [currentStep, setCurrentStep] = useState<'form' | 'commission'>('form');
   const [selectedDairaId, setSelectedDairaId] = useState<string>('');
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const storeTypes: string[] = ['fast', 'rest', 'sup', 'alim', 'frleg', 'pzpat', 'blnj', 'gatrad', 'prodcos', 'brtbc', 'bcvr', 'bcvb', 'pss', 'epss', 'cremerie'];
   const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -239,7 +241,13 @@ const RegistrationForm: React.FC = () => {
             size={30}
             color={termsAccepted ? colors.green : colors.noir}
           />
-          <Text style={styles.passwordInput}>{t('termsAcceptance')}</Text>
+          <Text style={styles.passwordInput}>
+            {t('termsCondis').split('{{')[0]}
+            <Text style={styles.termsLink} onPress={() => setShowTermsModal(true)}>
+              {t('termsCondis').split('{{')[1]?.split('}}')[0]}
+            </Text>
+            {t('termsCondis').split('}}')[1] || ''}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.customButton, styles.nextButton, (!termsAccepted || isLoading) && styles.nextButtonDisabled]}
@@ -250,6 +258,11 @@ const RegistrationForm: React.FC = () => {
             {isLoading ? <ActivityIndicator color={colors.accent} /> : t('registerMySelf')}
           </Text>
         </TouchableOpacity>
+
+        <TermsModal
+          visible={showTermsModal}
+          onClose={() => setShowTermsModal(false)}
+        />
       </ScrollView>
     );
   }
@@ -450,6 +463,7 @@ const RegistrationForm: React.FC = () => {
       >
         <Text style={styles.customButtonText}>{t('nextButton')}</Text>
       </TouchableOpacity>
+
     </ScrollView>
   );
 };
@@ -627,7 +641,13 @@ const getStyles = (theme: 'light' | 'dark') => {
       color: colors.textNormal,
       fontSize: 14,
       fontWeight: 'bold',
-    }
+    },
+    termsLink: {
+      fontSize: 14,
+      color: colors.tint,
+      fontWeight: 'bold',
+      textDecorationLine: 'underline',
+    },
   });
 };
 

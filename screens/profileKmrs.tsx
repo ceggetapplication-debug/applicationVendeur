@@ -11,6 +11,7 @@ import PremiumKmrsOffersModal from '../modals/modalPremiumsKMRS';
 import { sizes, buildStoreProfilePhoto, buildStorePhoto, uploadToR2 } from '../logic/imagesLogic';
 import { account, databases, config, Query, ID, sendPasswordResetEmailWithFallback } from '../logic/appwriteConfig';
 import { useAppTranslation } from '../translations/data/translationCentralization';
+import { TermsModal } from '../modals/termsCondiKmrs';
 
 
 const s = sizes();
@@ -53,6 +54,7 @@ function ProfileScreen() {
   const [emailLinkSent, setEmailLinkSent] = useState(false);
   const [passwordLinkSent, setPasswordLinkSent] = useState(false);
   const [avantagesModalVisible, setAvantagesModalVisible] = useState(false);
+  const [termsModalVisible, setTermsModalVisible] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [premiumPackName, setPremiumPackName] = useState('');
   const [premiumEndDate, setPremiumEndDate] = useState('');
@@ -493,6 +495,14 @@ function ProfileScreen() {
               {renderMenuItem('call-outline', t('profileScreen.contactUs'))}
               {renderMenuItem('log-out-outline', t('profileScreen.logout'))}
               {renderMenuItem('trash-outline', t('profileScreen.deleteAccount'))}
+
+              <Text style={[styles.accountDetailTitle, { alignSelf: 'center', marginTop: 25 }]}>
+                {t('aboutUs').split('{{')[0]}
+                <Text style={{ color: colors.tint, textDecorationLine: 'underline' }} onPress={() => setTermsModalVisible(true)}>
+                  {t('aboutUs').split('{{')[1]?.split('}}')[0]}
+                </Text>
+                {t('aboutUs').split('}}')[1] || ''}
+              </Text>
             </ScrollView>
           </View>
         </>
@@ -769,6 +779,11 @@ function ProfileScreen() {
         onUpgradePress={() => { }}
       />
 
+      <TermsModal
+        visible={termsModalVisible}
+        onClose={() => setTermsModalVisible(false)}
+      />
+
       {isLoading && (
         <Modal transparent visible animationType="fade">
           <View style={styles.loadingOverlay}>
@@ -858,6 +873,12 @@ const getStyles = (theme: 'light' | 'dark') => {
       flexDirection: 'row',
       alignItems: 'center',
       marginLeft: 10,
+    },
+    aboutUsLink: {
+      fontSize: 13,
+      color: colors.tint,
+      fontWeight: 'bold',
+      textDecorationLine: 'underline',
     },
     menuItemText: {
       fontSize: 14,

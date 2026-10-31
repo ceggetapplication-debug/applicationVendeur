@@ -981,6 +981,7 @@
   "commissionDesc02": "sur chaque commande faite par un acheteur et livrée chez lui/elle par nos livreurs. Cette commission concerne donc seulement et seulement les commandes que nous livrons. Si un acheteur vient récupérer sa commande par lui/elle même, vous n'allez pas payer de commission sur cette commande.",
   "commissionViews": "À propos de la commission sur la visibilité",
   "perView": "Pour chaque vu, visite, pickup",
+  "termsCondis": "En cliquant sur le bouton d'incription, vous acceptez les {{Conditions Générales}} d'utilisation de cette application, et vous être de facto d'accord avec toutes les Conditions.",
   "termsAcceptance": "Je confirme d'avoir lu et compris l'intégralité du texte traitant sur les commissions que je dois diverser en m'inscrivant sur Cegget. Je donne mon consentement et mon accord.",
   "commissionViews01": "En ce qui concerne les visites de votre magasin sur Cegget, nous considérons Cegget comme un espace publicitaire vous permettant de communiquer plus facilement et atteindre les acheteurs potentiels de manière plus efficace. À ce titre nous vous demanderons une petite commission pour honorer ce service rendu à votre visibilité. Cette petite commission, sera de: "
 }

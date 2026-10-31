@@ -99,7 +99,7 @@ export const COMMERCE_PERCENTAGES: Record<CommerceType, number> = {
   boulangerie: 1.43,
   fruits_legumes: 2.51,
   fruits_legumes_specialise: 2.54,
-  alimentation_generale: 1.9,
+  alimentation_generale: 1.978,
   superette: 3.458,
   boucherie_viande_rouge: 2.83,
   boucherie_viande_blanche: 2.5,
