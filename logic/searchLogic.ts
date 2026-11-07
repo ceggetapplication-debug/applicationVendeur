@@ -1,7 +1,6 @@
 import { databases, config } from './appwriteConfig';
 import { Query } from 'react-native-appwrite';
-import { OneSignal } from 'react-native-onesignal';
-import { getProductSuggestions, loadTranslationsFromJson, productNameTranslator, ProductNameKey, normalizeText, } from './logiqueNoms';
+import { getProductSuggestions, loadTranslationsFromJson, productNameTranslator, normalizeText, } from './logiqueNoms';
 
 interface AppwriteProductDoc {
     $id: string;
@@ -113,13 +112,10 @@ export class SearchLogic {
                 config.productsCollectionId,
                 [Query.orderDesc('searchCount'), Query.limit(10)]
             );
-            return response.documents.map((doc: Models.Document) => {
-                const product = doc as AppwriteProductDoc & { searchCount?: number };
-                return {
-                    name: product.name ?? '',
-                    searchCount: product.searchCount ?? 0,
-                };
-            });
+            return response.documents.map((doc: AppwriteProductDoc & { searchCount?: number }) => ({
+                name: doc.name ?? '',
+                searchCount: doc.searchCount ?? 0,
+            }));
         } catch (e) {
             console.error('getPopularProducts error:', e);
             return [];
